@@ -7,8 +7,8 @@ from ROOT import gROOT, gStyle, kWhite, kGray
 import ROOT
 
 class FCCStyle():
-    fillcolors = [ROOT.kGray, ROOT.kRed, ROOT.kOrange, ROOT.kSpring+10, ROOT.kCyan-10, ROOT.kAzure-9, ROOT.kMagenta-9]
-    linecolors = [ROOT.kBlack, ROOT.kRed+1, ROOT.kGreen+3, ROOT.kCyan+1, ROOT.kAzure-3, ROOT.kMagenta+2, ROOT.kGray+2]
+    fillcolors = [ROOT.kGray, ROOT.kRed, ROOT.kOrange, ROOT.kSpring+10, ROOT.kCyan-10, ROOT.kAzure-9, ROOT.kMagenta-9, ROOT.kGray, ROOT.kRed, ROOT.kOrange, ROOT.kSpring+10, ROOT.kCyan-10, ROOT.kAzure-9, ROOT.kMagenta-9, ROOT.kGray, ROOT.kRed, ROOT.kOrange, ROOT.kSpring+10, ROOT.kCyan-10, ROOT.kAzure-9, ROOT.kMagenta-9]
+    linecolors = [ROOT.kBlack, ROOT.kRed+1, ROOT.kGreen+3, ROOT.kCyan+1, ROOT.kAzure-3, ROOT.kMagenta+2, ROOT.kGray+2, ROOT.kBlack, ROOT.kRed+1, ROOT.kGreen+3, ROOT.kCyan+1, ROOT.kAzure-3, ROOT.kMagenta+2, ROOT.kGray+2, ROOT.kBlack, ROOT.kRed+1, ROOT.kGreen+3, ROOT.kCyan+1, ROOT.kAzure-3, ROOT.kMagenta+2, ROOT.kGray+2]
     def __init__(self):
 	      pass
 

@@ -95,7 +95,7 @@ static DD4hep::Geometry::Ref_t createECalBarrelInclined(DD4hep::Geometry::LCDD& 
   }
   // 2. Create bath that is inside the cryostat and surrounds the calorimeter
   //    Bath is filled with active material -> but not sensitive
-  DD4hep::Geometry::Volume bathVol(activeMaterial + "_bath", bathOuterShape, aLcdd.material(activeMaterial));
+  DD4hep::Geometry::Volume bathVol(activeMaterial + "_bath", bathOuterShape, aLcdd.material("LAr2"));
   lLog << MSG::INFO << "ECAL bath: material = " << activeMaterial << " rmin (cm) =  " << bathRmin
        << " rmax (cm) = " << bathRmax << " thickness in front of ECal (cm) = " << caloDim.rmin() - cryoDim.rmin2()
        << " thickness behind ECal (cm) = " << cryoDim.rmax1() - caloDim.rmax() << endmsg;

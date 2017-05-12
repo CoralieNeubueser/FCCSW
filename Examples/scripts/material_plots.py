@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description='Material Plotter')
     parser.add_argument('--fname', "-f", dest='fname', type=str, help="name of file to read")
     parser.add_argument('--etaMax', "-m", dest='etaMax', default=6, type=float, help="maximum pseudorapidity")
-    parser.add_argument('--etaBin', "-b", dest='etaBin', default=0.05, type=float, help="pseudorapidity bin width")
+    parser.add_argument('--etaBin', "-b", dest='etaBin', default=0.1, type=float, help="pseudorapidity bin width")
     args = parser.parse_args()
 
     f = ROOT.TFile.Open(args.fname, "read")

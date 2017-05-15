@@ -170,6 +170,10 @@
     <D value="1.396" unit="g/cm3" />
     <composite n="1" ref="Ar"/>
   </material>
+  <material name="LArNonSensitive">
+    <D value="1.396" unit="g/cm3" />
+    <composite n="1" ref="Ar"/>
+  </material>
 
   <material name="LAr2">
     <D value="1.396" unit="g/cm3" />

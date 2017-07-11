@@ -69,7 +69,7 @@ calibEcells = CalibrateInLayersTool("Calibrate",
                                     # sampling fraction obtained using SamplingFractionInLayers from DetStudies package
                                     samplingFraction = [0.168] * 4 + [0.176] * 4 + [0.184] * 4 + [0.191] * 4 + [0.198] * 4 + [0.204] * 4 + [0.210] * 4 + [0.215] * 4,
                                     readoutName = ecalReadoutName,
-                                    layerFieldName = "cell")
+                                    layerFieldName = "layer")
 
 #Configure tools for calo reconstruction
 from Configurables import CalibrateCaloHitsTool

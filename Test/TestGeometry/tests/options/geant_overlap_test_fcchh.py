@@ -3,7 +3,11 @@ from Gaudi.Configuration import *
 from Configurables import GeoSvc, SimG4Svc, ApplicationMgr
 
 # initialize master geometry of FCC-hh
-geoservice = GeoSvc("GeoSvc", detectors=['file:Detector/DetFCChhBaseline1/compact/FCChh_DectMaster.xml'])
+geoservice = GeoSvc("GeoSvc", detectors=['file:Detector/DetFCChhBaseline1/compact/FCChh_DectMaster.xml',
+                                         'file:Detector/DetCommon/compact/SolenoidAluminum.xml',          
+                                         'file:Detector/DetCommon/compact/shields.xml',
+                                         'file:Detector/DetCommon/compact/MuonSystemSimple.xml'
+                                         ])
 # giving the names of tools will initialize the tools of that type
 # adding G4 command that actually runs the overlap check
 geantservice = SimG4Svc("SimG4Svc",

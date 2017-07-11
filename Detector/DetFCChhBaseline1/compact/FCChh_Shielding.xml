@@ -16,10 +16,12 @@
   </display>
   <detectors>
     <!-- End-caps -->
-    <detector name="ShieldingLowerConePos" type="SimpleCone" vis="ShieldingVis">
+    <detector name="ShieldingLowerConePos" type="LayeredCone" vis="ShieldingVis">
       <dimensions rmin1="1371.9*mm" rmax1="2063.72*mm" rmin2="1735.5*mm" rmax2="2610.73*mm" dz="1100*mm" z_offset="9400*mm"  material="Iron"/>
-    </detector>
-        <detector name="ShieldingUpperConePos" type="SimpleCone" vis="ShieldingVis">
+      <layer rmin="1371.9*mm" rmax="..." dz="..." z_offset="..." material="...">
+
+      </detector>
+      <detector name="ShieldingUpperConePos" type="SimpleCone" vis="ShieldingVis">
       <dimensions rmin1="1735.5*mm" rmax1="5000*mm" rmin2="1900.8*mm" rmax2="5000*mm" dz="500*mm" z_offset="11000*mm"  material="Iron"/>
     </detector>
     <detector name="ShieldingUpperCylPos" type="SimpleCylinder"  vis="ShieldingVis">

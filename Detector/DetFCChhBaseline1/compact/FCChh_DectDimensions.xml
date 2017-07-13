@@ -114,7 +114,7 @@
     <constant name="ExtBarHCal2_rmax" value="4590*mm"/>
     <constant name="ExtBarHCal1_dz" value="150*mm"/>
     <constant name="ExtBarHCal1_zOffset" value="5000*mm + ExtBarHCal1_dz"/>
-    <constant name="ExtBarHCal2_dz" value="1600*mm"/> <!--1600, 1500, 1350 -->
+    <constant name="ExtBarHCal2_dz" value="1600*mm"/> <!-- changed to increase HCAL EB by 50cm from 1350 to 1600 -->
     <constant name="ExtBarHCal2_zOffset" value="ExtBarHCal1_zOffset + ExtBarHCal1_dz + ExtBarHCal2_dz"/>
     <!-- Forward calorimeters (EFCAL + HFCAL) -->
     <constant name="FwdECal_id" value="10"/>
@@ -133,7 +133,7 @@
     <constant name="BarMuon_z1" value="13000*mm"/>
     <constant name="BarMuon_rmin2" value="5245*mm"/>
     <constant name="BarMuon_rmax2" value="6500*mm"/>
-    <constant name="BarMuon_z2" value="10500*mm"/> <!-- 10000 in reference_geometry_5m_4T_v7.pdf -->
+    <constant name="BarMuon_z2" value="10500*mm"/>
     <!-- Muon system end-caps -->
     <constant name="EndCapMuon_id" value="13"/>
     <constant name="EndCapMuon_rmin1" value="2458.67*mm"/>
@@ -154,30 +154,8 @@
     <constant name="FwdMuon_rmin" value="30*mm"/>
     <constant name="FwdMuon_rmax" value="7000*mm"/>
     <constant name="FwdMuon_dz" value="1500*mm"/>
-    <constant name="FwdMuon_zOffset" value="20500*mm + FwdMuon_dz"/>
+    <constant name="FwdMuon_zOffset" value="19700*mm + FwdMuon_dz"/> <!-- changed from 20500 to value in reference_geometry_5m_4T_v7.pdf -->
 
-    <!-- SHIELDING -->
-    <constant name="ShieldCone1_rmin1" value="8.3*m * tan(2*atan(exp(-2.5)))"/>
-    <constant name="ShieldCone1_rmax1" value="8.3*m * tan(2*atan(exp(-2.1)))"/>
-    <constant name="ShieldCone1_rmin2" value="11.5*m * tan(2*atan(exp(-2.5)))"/>
-    <constant name="ShieldCone1_rmax2" value="11.5*m * tan(2*atan(exp(-2.1)))"/>
-    <constant name="ShieldCone1_dz" value="1.6*m"/>
-    <constant name="ShieldCone1_offset" value="8.3*m + ShieldCone1_dz"/>
-    <constant name="ShieldCone2_rmin1" value="10.5*m * tan(2*atan(exp(-2.1)))"/>
-    <constant name="ShieldCone2_rmax1" value="5*m"/>
-    <constant name="ShieldCone2_rmin2" value="11.5*m * tan(2*atan(exp(-2.1)))"/>
-    <constant name="ShieldCone2_rmax2" value="5*m"/>
-    <constant name="ShieldCone2_dz" value="0.5*m"/>
-    <constant name="ShieldCone2_offset" value="ShieldCone1_offset + ShieldCone1_dz - ShieldCone2_dz"/>
-    <constant name="Shield_rmin1" value="4*m"/>
-    <constant name="Shield_rmax1" value="5*m"/>
-    <constant name="Shield_dz1" value="2.5*m"/>
-    <constant name="Shield_offset1" value="ShieldCone2_offset + ShieldCone2_dz + Shield_dz1"/>
-    <constant name="Shield_rmin2" value="3.5*m"/>
-    <constant name="Shield_rmax2" value="5*m"/>
-    <constant name="Shield_dz2" value="0.5*m"/>
-    <constant name="Shield_offset2" value="Shield_offset1 + Shield_dz1 + Shield_dz2"/>
-
-  </define>
+ </define>
 
 </lccdd>

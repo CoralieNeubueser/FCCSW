@@ -17,7 +17,7 @@
     <vis name="MuonEnvelopeFwdVis" r="0.90" g="0.72" b="0.48" a="0.2" showDaughters="false" visible="true"/>
   </display>
   <define>
-    <constant name="MuonSpacer" value="30*mm" />
+    <constant name="MuonSpacer" value="30*mm/2." />
   </define>
 
   <readouts>
@@ -32,7 +32,7 @@
     <!-- Barrel -->
     <detector id="BarMuon_id" name="MuonEnvelope" type="SimpleCylinderSensitive" readout="Muons_Readout" vis="MuonEnvelopeVis">
       <comment>Envelope for Muon Barrel</comment>
-      <dimensions rmin="BarMuon_rmax2" rmax="BarMuon_rmax2+MuonSpacer" dz="BarMuon_z2" phi0="0" deltaphi="360*deg" z_offset="0*cm" material="Aluminum"/>
+      <dimensions rmin="BarMuon_rmax2" rmax="BarMuon_rmax2+MuonSpacer" dz="BarMuon_z2-MuonSpacer" phi0="0" deltaphi="360*deg" z_offset="0*cm" material="Aluminum"/>
     </detector>
     <detector name="MuonEnvelopeExtBarrelPos" type="SimpleCylinderSensitive" readout="Muons_Readout" vis="MuonEnvelopeVis">
       <comment>Envelope for Muon extended Barrel</comment>

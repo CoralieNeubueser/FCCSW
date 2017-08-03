@@ -136,7 +136,7 @@ private:
   /// Size of the tower in phi
   Gaudi::Property<float> m_deltaPhiTower{this, "deltaPhiTower", 0.01, "Size of the tower in phi"};
   // Maximum layer (4 = first layer of 2cm length)
-  Gaudi::Property<float> m_maximumLayer{this, "maximumLayer", 4, "Maximum cell layer"};
+  Gaudi::Property<float> m_maximumLayer{this, "maximumLayer", 130, "Maximum cell layer"};
   /// number of towers in eta (calculated from m_deltaEtaTower and m_etaMax)
   uint m_nEtaTower;
   /// Number of towers in phi (calculated from m_deltaPhiTower)

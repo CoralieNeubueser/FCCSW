@@ -12,6 +12,8 @@ CreateCaloClustersSlidingWindow::CreateCaloClustersSlidingWindow(const std::stri
     : GaudiAlgorithm(name, svcLoc) {
   declareProperty("clusters", m_clusters, "Handle for calo clusters (output collection)");
   declareProperty("towerTool", m_towerTool, "Handle for the tower building tool");
+  declareProperty("towerToolFirstLayer", m_towerToolFirstLayer, "Handle for the tower building tool within first layer");
+  initialize_histos();
 }
 
 StatusCode CreateCaloClustersSlidingWindow::initialize() {
@@ -33,13 +35,32 @@ StatusCode CreateCaloClustersSlidingWindow::initialize() {
             << endmsg;
     m_nEtaTower = m_nEtaWindow;
   }
+  if (!m_towerToolFirstLayer.retrieve()) {
+    error() << "Unable to retrieve the tower building tool within first layer." << endmsg;
+    return StatusCode::FAILURE;
+  }
+  // Get number of calorimeter towers in first layer
+  auto towerMapSizeFirstLayer = m_towerToolFirstLayer->towersNumber();
+  m_nEtaTowerFirstLayer = towerMapSizeFirstLayer.eta;
+  m_nPhiTowerFirstLayer = towerMapSizeFirstLayer.phi;
+  debug() << "Number of calorimeter towers in 1st layer(eta x phi) : " << m_nEtaTower << " x " << m_nPhiTower << endmsg;
   info() << "CreateCaloClustersSlidingWindow initialized" << endmsg;
   return StatusCode::SUCCESS;
+}
+
+void CreateCaloClustersSlidingWindow::initialize_histos() {
+  // initialize histograms
+  h_Fside = new TH1D("h_Fside","h_Fside",100,0,1);
+  h_ws3 = new TH1D("h_ws3","h_ws3",100,0,1);
+  h_DeltaE = new TH1D("h_DeltaE","h_DeltaE",100,0,1);
+  h_Eratio = new TH1D("h_Eratio","h_Eratio",100,0,1);
 }
 
 StatusCode CreateCaloClustersSlidingWindow::execute() {
   // 1. Create calorimeter towers (calorimeter grid in eta phi, all layers merged)
   m_towers.assign(m_nEtaTower, std::vector<float>(m_nPhiTower, 0));
+  // 1.1 Create calorimeter towers (calorimeter grid in eta phi, only first layer)
+  m_towersFirstLayer.assign(m_nEtaTowerFirstLayer, std::vector<float>(m_nPhiTowerFirstLayer, 0));
   // Create an output collection
   auto edmClusters = m_clusters.createAndPut();
   // Check if the tower building succeeded
@@ -47,6 +68,100 @@ StatusCode CreateCaloClustersSlidingWindow::execute() {
     debug() << "Empty cell collection." << endmsg;
     return StatusCode::SUCCESS;
   }
+  // Check if the tower building in 1rst layer succeeded
+  if (m_towerToolFirstLayer->buildTowers(m_towersFirstLayer) == 0) {
+    debug() << "Empty cell collection." << endmsg;
+    return StatusCode::SUCCESS;
+  }
+  // Loop over all towers in eta and phi to retrieve tower energies
+  // Store map from energy to eta phi indices of tower
+  std::map<float, std::pair<int,int>, std::greater<float> > energyTowers;
+  std::map<float, std::pair<int,int> >::const_iterator it;
+  for (int iEta = 0; iEta < m_nEtaTowerFirstLayer; iEta++) {
+    for (int iPhi = 0; iPhi < m_nPhiTowerFirstLayer; iPhi++) {
+      float towerEnergy = m_towersFirstLayer[iEta][iPhi] * cosh(m_towerToolFirstLayer->eta(iEta));
+      energyTowers[towerEnergy] = std::make_pair(iEta, iPhi);
+    }
+  }
+  double energyMaxima[energyTowers.size()] = {0.};
+  int iTowers=0;
+  for (it = energyTowers.begin(); it != energyTowers.end(); ++it){
+    float key = it->first;
+    energyMaxima[iTowers] = key;
+    info() << "Energy  of tower:       " << key << endmsg;
+    info() << "Indices of tower:       " << it->second << endmsg;
+    iTowers++;
+  }
+  int iEta_firstMaximum = energyTowers.at(energyMaxima[0]).first;
+  int iPhi_firstMaximum = energyTowers.at(energyMaxima[0]).second;
+
+  // Calculation of front side energy ratio
+  float energyPM3 = energyMaxima[0] + m_towersFirstLayer[iEta_firstMaximum-3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
+  float energyPM1 =  energyMaxima[0] + m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
+  float F_side = (energyPM3 - energyPM1)/energyPM1;
+  h_Fside->Fill(F_side);
+
+  // Calculation of front lateral width using stripCells in Eta
+  // loop in binsEta=3 steps in Atlas, 3 times better segmentation for FCC -> binsEta=9
+  // loop in binsPhi=1 steps in Atlas, 8 times better segmentation for FCC -> binsPhi=4
+  int binsEta = 9;
+  int binsPhi = 8;
+  int iMax = std::floor(iEta_firstMaximum/binsEta);
+  int iEtaStartStrips = iEta_firstMaximum - (iMax - 1)*binsEta;
+  info() << "iEta of maximum :               " << iEta_firstMaximum << endmsg;
+  info() << "iPhi of maximum :               " << iPhi_firstMaximum << endmsg;
+  info() << "index of maximum :              " << iMax << endmsg;
+  info() << "iEta to start for strip cells : " << iEtaStartStrips << endmsg;
+  std::map<float, int, std::greater<float> > energyStripCells;
+  std::map<int, float> indexStripCells;
+  std::map<float, int >::const_iterator itStrips;
+  int index=0;
+  for (int iEta = iEtaStartStrips; iEta < (m_nEtaTowerFirstLayer - std::floor(binsEta/2)); iEta++) {
+    index++;
+    float stripCellEnergy=0.;
+    for (int iBinsEta = -std::floor(binsEta/2); iBinsEta <= std::floor(binsEta/2); iBinsEta++){
+      for (int iBinsPhi = -std::floor(binsPhi/2); iBinsPhi <= std::floor(binsPhi/2); iBinsPhi++){
+	info() << "eta bins : " << iEta+iBinsEta << endmsg;
+	info() << "phi bins : " << iPhi_firstMaximum+iBinsPhi << endmsg;
+	int etaIndex = iEta + iBinsEta;
+	int phiIndex = iPhi_firstMaximum + iBinsPhi;
+	float energyStrip = m_towersFirstLayer[etaIndex][phiIndex] * cosh(m_towerToolFirstLayer->eta(etaIndex));
+	stripCellEnergy += energyStrip;
+      }
+    }
+    info() << "energy of strip cell : " << stripCellEnergy << endmsg;
+    energyStripCells[stripCellEnergy] = index;
+    indexStripCells[index] = stripCellEnergy;
+    iEta += (binsEta-1);
+  }  
+  double energyMaximaStripCells[energyStripCells.size()] = {0.};
+  float ws3_squared=0.;
+  int iStripCells=0;
+  for (itStrips = energyStripCells.begin(); itStrips != energyStripCells.end(); ++itStrips){
+    float key = itStrips->first;
+    ws3_squared += key * pow((itStrips->second - iMax),2) / key;
+    energyMaximaStripCells[iStripCells] = key;
+    info() << "Energy  of strip cells:       " << key << endmsg;
+    info() << "Indices of strip cells:       " << itStrips->second << endmsg;
+    iStripCells++;
+  }
+  float ws3 = sqrt(ws3_squared);
+  h_ws3->Fill(ws3);
+ 
+  // Front second maximum energy difference
+  info() << "Energy of 1rst maximum (strip cell) : " << energyMaximaStripCells[0] << endmsg;
+  info() << "Index  of 1rst maximum (strip cell) : " << energyStripCells[energyMaximaStripCells[0]] << endmsg;
+  info() << "Energy of 2nd  maximum (strip cell) : " << energyMaximaStripCells[1] << endmsg;
+  info() << "Index  of 2nd  maximum (strip cell) : " << energyStripCells[energyMaximaStripCells[1]] << endmsg; 
+  int indexMin1 = energyStripCells[energyMaximaStripCells[0]] + std::floor((energyStripCells[energyMaximaStripCells[1]] - energyStripCells[energyMaximaStripCells[0]])/2);
+  info() << "Energy of minimum (strip cell) : " << indexStripCells[indexMin1] << endmsg;
+  float DeltaE = energyMaximaStripCells[1] - indexStripCells[indexMin1];
+  h_DeltaE->Fill(DeltaE);
+
+  // Front maxima relative energy ratio
+  float Eratio = (energyMaximaStripCells[0] - energyMaximaStripCells[1])/(energyMaximaStripCells[0] + energyMaximaStripCells[1]);
+  h_Eratio->Fill(Eratio);
+
   // 2. Find local maxima with sliding window, build preclusters, calculate their barycentre position
   // calculate the sum of first m_nEtaWindow bins in eta, for each phi tower
   std::vector<float> sumOverEta(m_nPhiTower, 0);
@@ -287,7 +402,9 @@ StatusCode CreateCaloClustersSlidingWindow::execute() {
   return StatusCode::SUCCESS;
 }
 
-StatusCode CreateCaloClustersSlidingWindow::finalize() { return GaudiAlgorithm::finalize(); }
+StatusCode CreateCaloClustersSlidingWindow::finalize() { 
+  return GaudiAlgorithm::finalize(); 
+}
 
 unsigned int CreateCaloClustersSlidingWindow::phiNeighbour(int aIPhi) const {
   if (aIPhi < 0) {

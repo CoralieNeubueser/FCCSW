@@ -9,6 +9,8 @@
 #include "FWCore/DataHandle.h"
 #include "RecInterface/ITowerTool.h"
 
+#include "TH1D.h"
+
 // datamodel
 namespace fcc {
 class CaloClusterCollection;
@@ -80,6 +82,16 @@ public:
    */
   StatusCode finalize();
 
+  void initialize_histos();
+  /// hitsogram Fside
+  TH1D* h_Fside;
+  /// hitsogram ws3
+  TH1D* h_ws3;
+  /// hitsogram DeltaE
+  TH1D* h_DeltaE;
+  /// hitsogram Eratio
+  TH1D* h_Eratio;
+
 private:
   /**  Correct way to access the neighbour of the phi tower, taking into account the full coverage in phi.
    *   Full coverage means that first tower in phi, with ID = 0 is a direct neighbour
@@ -94,6 +106,14 @@ private:
   ToolHandle<ITowerTool> m_towerTool;
   // calorimeter towers
   std::vector<std::vector<float>> m_towers;
+  /// Handle for the tower building tool
+  ToolHandle<ITowerTool> m_towerToolFirstLayer;
+  // calorimeter towers
+  std::vector<std::vector<float>> m_towersFirstLayer;
+  /// number of towers in eta (calculated from m_deltaEtaTower and the eta size of the first layer)
+  int m_nEtaTowerFirstLayer;
+  /// Number of towers in phi (calculated from m_deltaPhiTower)
+  int m_nPhiTowerFirstLayer;
   /// Vector of pre-clusters
   std::vector<cluster> m_preClusters;
   /// number of towers in eta (calculated from m_deltaEtaTower and the eta size of the first layer)

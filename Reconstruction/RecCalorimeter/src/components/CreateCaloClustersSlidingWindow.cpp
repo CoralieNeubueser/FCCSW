@@ -2,6 +2,8 @@
 
 // Gaudi
 #include "GaudiKernel/PhysicalConstants.h"
+#include "GaudiKernel/ITHistSvc.h"
+#include "TH1D.h"
 
 // datamodel
 #include "datamodel/CaloClusterCollection.h"
@@ -9,11 +11,15 @@
 DECLARE_ALGORITHM_FACTORY(CreateCaloClustersSlidingWindow)
 
 CreateCaloClustersSlidingWindow::CreateCaloClustersSlidingWindow(const std::string& name, ISvcLocator* svcLoc)
-    : GaudiAlgorithm(name, svcLoc) {
+: GaudiAlgorithm(name, svcLoc),
+  m_histSvc("THistSvc", "pi0 tag"),
+  h_Fside(nullptr),
+  h_ws3(nullptr),
+  h_DeltaE(nullptr),
+  h_Eratio(nullptr) {
   declareProperty("clusters", m_clusters, "Handle for calo clusters (output collection)");
   declareProperty("towerTool", m_towerTool, "Handle for the tower building tool");
   declareProperty("towerToolFirstLayer", m_towerToolFirstLayer, "Handle for the tower building tool within first layer");
-  initialize_histos();
 }
 
 StatusCode CreateCaloClustersSlidingWindow::initialize() {
@@ -45,15 +51,31 @@ StatusCode CreateCaloClustersSlidingWindow::initialize() {
   m_nPhiTowerFirstLayer = towerMapSizeFirstLayer.phi;
   debug() << "Number of calorimeter towers in 1st layer(eta x phi) : " << m_nEtaTower << " x " << m_nPhiTower << endmsg;
   info() << "CreateCaloClustersSlidingWindow initialized" << endmsg;
-  return StatusCode::SUCCESS;
-}
 
-void CreateCaloClustersSlidingWindow::initialize_histos() {
-  // initialize histograms
+  // register histograms
   h_Fside = new TH1D("h_Fside","h_Fside",100,0,1);
   h_ws3 = new TH1D("h_ws3","h_ws3",100,0,1);
   h_DeltaE = new TH1D("h_DeltaE","h_DeltaE",100,0,1);
   h_Eratio = new TH1D("h_Eratio","h_Eratio",100,0,1);
+  
+  if (m_histSvc->regHist("rec/Fside", h_Fside).isFailure()){
+    error() << "couldn't register histogram" << endmsg;
+    return StatusCode::FAILURE;
+  }
+  if (m_histSvc->regHist("rec/ws3", h_ws3).isFailure()){
+    error() << "couldn't register histogram" << endmsg;
+    return StatusCode::FAILURE;
+  }
+  if (m_histSvc->regHist("rec/DeltaE", h_DeltaE).isFailure()){
+    error() << "couldn't register histogram" << endmsg;
+    return StatusCode::FAILURE;
+  }
+  if (m_histSvc->regHist("rec/Eratio", h_Eratio).isFailure()){
+    error() << "couldn't register histogram" << endmsg;
+    return StatusCode::FAILURE;
+  }
+
+  return StatusCode::SUCCESS;
 }
 
 StatusCode CreateCaloClustersSlidingWindow::execute() {

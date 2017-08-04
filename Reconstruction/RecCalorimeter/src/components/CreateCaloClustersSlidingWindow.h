@@ -4,17 +4,20 @@
 // GAUDI
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "GaudiKernel/ToolHandle.h"
+#include "GaudiKernel/ServiceHandle.h"
 
 // FCCSW
 #include "FWCore/DataHandle.h"
 #include "RecInterface/ITowerTool.h"
-
-#include "TH1D.h"
+class IGeoSvc;
 
 // datamodel
 namespace fcc {
 class CaloClusterCollection;
 }
+
+class TH1D;
+class ITHistSvc;
 
 // Cluster
 struct cluster {
@@ -82,7 +85,6 @@ public:
    */
   StatusCode finalize();
 
-  void initialize_histos();
   /// hitsogram Fside
   TH1D* h_Fside;
   /// hitsogram ws3
@@ -99,6 +101,8 @@ private:
    *   @param[in] aIPhi requested ID of a phi tower, may be < 0 or >= m_nPhiTower
    *   @return  ID of a tower - shifted and corrected (in [0, m_nPhiTower) range)
    */
+  // Pointer to the interface of histogram service
+  ServiceHandle<ITHistSvc> m_histSvc;
   unsigned int phiNeighbour(int aIPhi) const;
   /// Handle for calo clusters (output collection)
   DataHandle<fcc::CaloClusterCollection> m_clusters{"calo/clusters", Gaudi::DataHandle::Writer, this};

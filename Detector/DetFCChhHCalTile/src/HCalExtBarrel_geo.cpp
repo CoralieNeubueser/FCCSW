@@ -24,6 +24,9 @@ createHCal(DD4hep::Geometry::LCDD& lcdd, xml_h xmlElement, DD4hep::Geometry::Sen
   // Make DetElement
   DetElement hCal(detName, xmlDet.id());
 
+  Dimension sensDetType = xmlElement.child(_Unicode(sensitive));
+  sensDet.setType(sensDetType.typeStr());
+  
   // Make volume that envelopes the whole barrel; set material to air
   Dimension dimensions(xmlDet.dimensions());
   xml_comp_t xEndPlate = xmlElement.child(_Unicode(end_plate));
@@ -100,12 +103,13 @@ createHCal(DD4hep::Geometry::LCDD& lcdd, xml_h xmlElement, DD4hep::Geometry::Sen
   double dzDetector2 = (numSequencesZ2 * dzSequence) / 2 + dZEndPlate/2 + space/2;
   lLog << MSG::INFO << "correction of dz (negative = size reduced) second part EB:" << dzDetector2*2 - dimensions.dz() << endmsg;
 
-  DD4hep::Geometry::Tube envelopeShape(dimensions.rmin2(), dimensions.rmax2(), extBarrelOffset2 + dzDetector2);
-  Volume envelopeVolume("envelopeVolume", envelopeShape, lcdd.air());
-  envelopeVolume.setVisAttributes(lcdd, dimensions.visStr());
+  DD4hep::Geometry::Tube envelope(dimensions.rmin2(), dimensions.rmax2(), extBarrelOffset2 + dzDetector2);
+  DD4hep::Geometry::Tube negative(dimensions.rmin2(), dimensions.rmax2(), extBarrelOffset1 - dzDetector1);
 
-  // set the sensitive detector type to the DD4hep calorimeter -- including Birks Law
-  sensDet.setType("BirksLawCalorimeterSD");
+  DD4hep::Geometry::SubtractionSolid envelopeShape(envelope, negative);
+
+  Volume envelopeVolume(detName + "_volume", envelopeShape, lcdd.air());
+  envelopeVolume.setVisAttributes(lcdd, dimensions.visStr());
 
   // Add structural support made of steel inside of HCal
   DetElement facePlate1(hCal, "FacePlate1", 0);

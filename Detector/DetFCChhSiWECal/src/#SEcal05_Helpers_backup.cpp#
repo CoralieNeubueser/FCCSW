@@ -1,0 +1,326 @@
+#include "SEcal05_Helpers.h"
+
+SEcal05_Helpers::SEcal05_Helpers() {
+  // constructor, initialise internal variables
+  _x_det=NULL;
+  _layering=NULL;
+  _preshower=-1;
+
+  _CF_absWrap=-1;
+  _CF_alvWall=-1;
+  _CF_front=-1;
+  _CF_back=-1;
+
+  _ntowers.clear();
+  _towerGap=-999;
+  _unitsPerTower=0;
+  _unitDeadEdge=-999;
+
+  _cells_across_megatile=0;
+  _strips_across_megatile=0;
+  _strips_along_megatile=0;
+
+  _constantSlabXYDimensions.clear();
+
+  _caloLayer.absorberThickness = -999;
+  _caloLayer.sensitive_thickness = -999;
+
+  _totThick=0;
+
+  _plugLength=0;
+
+  _magicMegatileStrategy=-1;
+}
+
+
+void SEcal05_Helpers::setAbsLayers( int nl1, double th1, int nl2, double th2, int nl3, double th3 ) {
+  // set the number and thicknesses of absorber layers
+  _nlayers1=nl1;
+  _nlayers2=nl2;
+  _nlayers3=nl3;
+  _radiator_thickness1=th1;
+  _radiator_thickness2=th2;
+  _radiator_thickness3=th3;
+  return;
+}
+
+void SEcal05_Helpers::checkLayerConsistency() {
+  // check requested number of absorber layers is cinsistent with preshower status 
+  // we are constrained to have an even number of sensitive layers [ 2 sens. layers / slab ]
+  assert( (_preshower==0 || _preshower==1) && "_preshower not set" );
+  int n_total_abs_layers = _nlayers1 + _nlayers2 + _nlayers3;    // total number of Absorber layers
+  // check that number of requested absober layers is consistent
+  // if we want a preshower layer, total number of Absorber layers should be odd; otherwise even
+  if ( _preshower==1 && n_total_abs_layers%2==0 ) {
+    std::cout << "SEcal05_Helpers ERROR: inconsistent ECAL model !! if you request a preshower layer, the number of absorber layers = _nlayers1 + _nlayers2 + _nlayers3 must be odd" << std::endl;
+    std::cout << " Ecal_PreshowerLayer = " << _preshower << " ; _nlayers1/2/3 = " << _nlayers1 << " " << _nlayers2 << " " << _nlayers3 << std::endl;
+    assert(0);
+  } else if ( _preshower==0 && n_total_abs_layers%2==1 ) {
+    std::cout << "SEcal05_Helpers ERROR: inconsistent ECAL model !! if you request no preshower layer, the number of absorber layers = _nlayers1 + _nlayers2 + _nlayers3 must be even" << std::endl;
+    std::cout << " Ecal_PreshowerLayer = " << _preshower << " ; _nlayers1/2/3 = " << _nlayers1 << " " << _nlayers2 << " " << _nlayers3 << std::endl;
+    assert(0);
+  }
+  return;
+}
+
+float SEcal05_Helpers::getTotalThickness() {
+  // calculate total thickness of ECAL
+  checkLayerConsistency();
+  assert( _x_det && _layering && "_x_det or _layering not set" );
+  assert( (_preshower==0 || _preshower==1) && "_preshower not set" );
+  assert( _CF_absWrap>=0. && _CF_alvWall>=0. && _CF_front>=0. && _CF_back>=0. && "CF thicknesses not set" );
+  float totalThickness = _CF_front+_CF_back;// front and back supports
+  // the absorber in the structure
+  for (unsigned int i=0; i<_nlayers1+_nlayers2+_nlayers3; i++) {
+    bool inStructure = _preshower ? i%2==1 : i%2==0 ;
+    if ( inStructure ) {
+      double thickness (_radiator_thickness1);
+      if ( i>=_nlayers1 ) thickness = _radiator_thickness2;
+      if ( i>=_nlayers1+_nlayers2 ) thickness = _radiator_thickness3;
+      totalThickness += thickness + 2*_CF_absWrap; // the absorber and its wrapping
+    }
+  }
+  // the slabs
+  int l_num(0);
+  for(xml_coll_t li(*_x_det,_U(layer)); li; ++li)  { // types of layers (i.e. thin/thick absorber) or "stack"
+    xml_comp_t x_layer = li;
+    // Loop over number of repeats for this layer.
+    for (int j=0; j< x_layer.repeat(); j++)    {  // layers within this type (or "stack")
+      float thisthick = _layering->layer(l_num)->thickness();
+      totalThickness+=thisthick + 2*_CF_alvWall; // slab thickness, and the alveolar wall around it
+      l_num++;
+    }
+  }
+  return totalThickness;
+}
+
+void SEcal05_Helpers::printSEcal05LayerInfo( DDRec::LayeredCalorimeterData::Layer & caloLayer) {
+  std::cout<<"SEcal05_Helpers === CALOLAYER printout: "                 << std::endl;
+  std::cout<<"    caloLayer.distance: "                 << caloLayer.distance <<std::endl;
+  std::cout<<"    caloLayer.inner_nRadiationLengths: "  << caloLayer.inner_nRadiationLengths <<std::endl;
+  std::cout<<"    caloLayer.inner_nInteractionLengths: "<< caloLayer.inner_nInteractionLengths <<std::endl;
+  std::cout<<"    caloLayer.inner_thickness: "          << caloLayer.inner_thickness <<std::endl;
+  std::cout<<"    caloLayer.sensitive_thickness: "      << caloLayer.sensitive_thickness <<std::endl;
+  std::cout<<"    caloLayer.cellSize0, 1: "             << caloLayer.cellSize0 << " " << caloLayer.cellSize1 << std::endl;
+  std::cout<<"    caloLayer.outer_nRadiationLengths: "  << caloLayer.outer_nRadiationLengths <<std::endl;
+  std::cout<<"    caloLayer.outer_nInteractionLengths: "<< caloLayer.outer_nInteractionLengths <<std::endl;
+  std::cout<<"    caloLayer.outer_thickness: "          << caloLayer.outer_thickness <<std::endl;
+  return;
+}
+
+double SEcal05_Helpers::getAbsThickness( unsigned int iAbsLay ) { //, int n1, int n2, int n3, double t1, double t2, double t3) {
+  // get the thickness of a given absorber layer
+  if ( iAbsLay < _nlayers1 ) return _radiator_thickness1;
+  else if ( iAbsLay - _nlayers1 < _nlayers2 ) return _radiator_thickness2;
+  else if ( iAbsLay - _nlayers1 - _nlayers2 < _nlayers3 ) return _radiator_thickness3;
+  assert(0 && "impossible layer number"); // should never get here
+  return -999.;
+}
+
+
+
+std::vector <SEcal05_Helpers::dimposXYStruct> SEcal05_Helpers::getAbsPlateXYDimensions( double ztop ) {
+  // get the dimensions of absorber plates
+  // for trapeziodal case, this depends on the Z position
+  // CF wrap not taken into account, so this width constains both absorber and its wrapping
+
+  if ( _module_XZtype==1 ) assert( ztop>=0 && "getAbsPlateXYDimensions: ztop not specified" ); // must specify Z position for case with non-uniform layers
+
+  std::vector <dimposXYStruct> absorbersheets;
+
+  if ( _module_XYtype == 1 ) { // each slab is different: calculate slab-by-slab (eg in endcap)
+    absorbersheets = getSlabXYDimensions( ztop );
+  } else {                  dule_dX_max;
+    ss.posX = ss.sizeX/2.;
+  } else {   // size varies by laer
+
+    //      ss.sizeX = _module_dX_max - 2.*ztop; // this assumes octagon
+
+    ss.sizeX = _module_dX_max - 2.*ztop/tan(_module_angle); // for general shape
+
+    ss.posX  = _module_dX_max/2.;   // keep it centered
+  }
+  ss.sizeY = _module_dY_total;
+  ss.posY = _module_dY_total/2.;
+  absorbersheets.push_back(ss);
+}
+return absorbersheets;
+}
+
+std::vectoalculated
+layerslabdims = _constantSlabXYDimensions;
+} else {
+    dimposXYStruct ss;
+    int totTow(0);
+    for (size_t imod=0; imod<_ntowers.size(); imod++) { // loop over "modules" [nb, for barrel, we only make a single module; for endcaps, typically have 3 per quadrant]
+      for (int itow = 0; itow<_ntowers[imod]; itow++) { // towers within the module
+	// each slab has same width
+        ss.sizeY = _alveolus_total_dim_Y; // this size include edge-of-tower dead space
+        ss.posY = 
+	  _moduleGap * ( 1 + 2*imod ) + // edge-of-module gaps from / assumes octagon
+
+	  ss.sizeX = _module_dX_max - 2.*ztop/tan(_module_angle); // for general shape
+
+	ss.posX = _module_dX_max/2.;  // slabs all centred
+      }
+
+      ss.sizeX -= _plugLength; // DANIELHACK 
+      ss.posX += _plugLength/2.;  // DANIELHACK 
+
+
+
+    } else if ( _module_XYtype==1 ) { // slabs within layer have different lengths : this is for endcap
+      // placing in Y
+      double upperY = ss.posY + 0.5*_alveolus_total_dim_Y; // Y position of upper edge
+
+      if ( upperY<=_module_dY_kink ) { // straight edge part under kink
+	ss.sizeX = _module_dX_max;
+      }endl;
+      assert(0);
+    }
+    layerslabdims.push_back(ss);
+    totTow++;
+  } // towers
+} // modules
+
+// if slab dimensions do not change layer-by-layer, memorise for next time
+if ( _module_XZtype == 0 ) _constantSlabXYDimensions = layerslabdims;
+}
+return layerslabdims;
+}
+
+
+void SEcal05_Helpers::updateCaloLayers(double thickness,
+				       (isAbsorber && _caloLayer.sensitive_thickness > 0 )  // end of a caloLayer
+				       ) {
+
+  // finalise caloLayer entry, add to caloData
+  _caloLayer.outer_thickness           = _layer_thickness;
+  _caloLayer.outer_nRadiationLengths   = _layer_nRadiationLengths;
+  _caloLayer.outer_nInteractionLengths = _layer_nInteractionLengths;
+  //_caloLayer.thickness                 = _c      _caloLayer.cellSize0 = cell_size_x;
+  _caloLayer.cellSize1 = cell_size_y;
+  _caloLayer.sensitive_thickness       = thickness ;
+  _caloLayer.inner_nRadiationLengths   = _layer_nRadiationLengths ;
+  _caloLayer.inner_nInteractionLengths = _layer_nInteractionLengths ;
+  _caloLayer.inner_thickness           = _laynf.normal_nX=-1;
+  dxInf.magic1_unitDX=-1;
+  dxInf.magic1_ncellsX=-1;
+  dxInf.magic2_unitDX=-1;
+
+  int nNormalUnit = int( floor( dx_total / dx_unit ) );
+
+  <shortestMagicCell
+
+     // the shortest magic cell (in terms of the usual cell size)
+     const double shortestMagicCell = 1.0; // this means that the last magic cell is at least as long as the standard cell
+
+  extraSensitiveSpace = extraSpace - 4.*dx_dead; // because both the magic tiles may have a dead area
+  extraNCells = extraSensitiveSpace / dx_cell;
+
+  if ( extraNCells < shortestMagicCell ) { // too sm? imagic1*dx_cell + 2*dx_dead : 0;
+    magic2cellsize = extraSpace - magic1size - 2*dx_dead;
+  }
+
+  assert( magic2cellsize/dx_cell >= shortestMagicCell && magic2cellsize/dx_cell <= shortestMagicCell+1.0 && "problem in deciding magic unit size" );
+
+  dxInf.normal_nX = nNormalUnit;
+  dxInf.magic1_ncellsX = imagic1;
+  dxInf.magic1_unitDX = imagic1>0 ? imagic1*dx_cell + 2*dx_dead : 0;
+
+  dxInf.magic2_unitDX = magic2cellsize + 2*dx_denitDX + dxInf.magic2_unitDX - dx_total << endl;
+  assert(0 && "magic unit does not fill space exactly");
+}
+
+}
+
+return dxInf;
+}
+
+
+void SEcal05_Helpers::makeModule( DD4hep::Geometry::Volume & mod_vol,  // the volume we'll fill
+				  DD4hep::Geometry::DetElement & stave_det, // the detector element
+				  DDRec::LayeredCalorimeterData & caloData, // the reco data we'll fill
+				  DD4hep::Geometry::LCDD & lcdd,
+				  DD4hep::Geometry::SensitiveDetector & sens
+				  ) {
+  // make the module
+  _caloData = &caloData;
+
+  // calculate widthstive_dim_Y  = unit_dim_Y - 2*_unitDeadEdge; // width of the sensitive area in each sensor
+  assert( unit_sensitive_dim_Y>0 && "negative-sized sensitive area..." ); // otherwise really weird!
+
+  // get detector stuff
+  assert ( _x_det && "_x_det not set");
+  int det_id           = _x_det->id();
+  xml_comp_" );
+
+  // set up the standard megatile size and offset 
+ if ( megatileSeg ) {
+    megatileS-------------------
+
+  for(xml_coll_t li(*_x_det,_U(layer)); li; ++li)  { // types of layers (i.e. thin/thick absorber) or "stack"
+    xml_comp_t x_layer = li;
+    //    cout << " ---- NEW LAYER TYPE " << layer_index << " repeat " <<  x_layer.repeat() << endl;
+
+    // Loop over number of repeats for this layer type
+    for (int j=0; j< x_layer.repeat(); j++)    {  // layers within this type (or "stack")
+      std::string l_name = _toString(layer_index,"layer%d");
+
+      // #########################
+      //   if ( _preshower==1 ) { // don't include W+CF wrapping; only one side of alveolus
+          this_struct_CFthick_beforeAbs = 0;
+          this_struct_CFthick_afterAbs = _CF_front + _CF_alvWall;
+          radiator_dim_Z = 0;
+        } else { // include W+CF wrapping; only one side of alveolus
+          // cout << " -- no preshower, including absorber" << endl;
+          this_struct_CFthick_beforeAbs = _CF_absWrap;
+          this_struct_CFthick_afterAbs = _CF_absWrap + _CF_alvWall;
+          radiator_dim_Z = getA_Z>0 && "no radiator!" );
+        rad_pos_Z = this_struct_CFthick_beforeAbs + radiator_dim_Z/2.; // distance from top surface of structure to centre of radiator
+      }_toString(int(ipl),"bs%02d"),
+                                                             ba_afterAbs;
+
+      // ######     if ( waferSeg ) {
+            cell_size_x = waferSeg->cellDimensions(0)[0];
+            cell_size_y = wafyLayerNumTemp, 0)[1];
+          }
+          updateCaloLayers( s_thick, slice_material, false, true, cell_size_x, cell_size_y ); // sensitive
+          myLayerNumTemp++;
+        } else {
+          updateCaloLayers( s_thick, slice_material, false, false );
+        }
+      }
+
+      //------------------------------------
+      // then actually construct the slabs
+      //------------------------------------
+      double slab_dim_Z = _layering->layer(layer_index)->thickness();
+      double                                            slab_dim_Z/2. );
+
+        DD4hep::Geometry::Volume     l_vol( _det_name+"_alveolus_"+l_name, l_box, _air_material);
+l_vol.setVisAttributes(lcdd.visAttributes( "GrayVis" ) );
+
+        DD4hep::Geometry::DetElement l_det( stave_det, l_name+_toString(int(islab),"tower%02d") , det_id );
+        DD4hep::Geometry::Position   l_pos = getTranslatedPosition(slabDims[islab].posX, slabDims[islab].po          DD4hep::Geometry::Material slice_material  = lcdd.material( x_slice.materialStr() );
+
+  std::string vis_str = x_slice.visStr();
+
+  if ( !x_slice.isSensitive() ) { // not the sensitive slice: just a layer of stuff
+
+    DD4hep::Geometry::Box      s_box( slab_dim_X/2. , slabDims[islab].sizeY/2. - _CF_alvWall, s_thick/2. );
+    DD4hep::Geometry::Volume   s_vol(_det_name+"_"+l_name+"_"+s_name, s_box, slice_material);
+    s_vol.setVisAttributes(lcdd.visAttributes( vis_str ));
+
+    DD4hep::Geomet layer
+    double cell_size_x = waferSeg ? waferSeg->cellDimensions(0)[0] : megatileSeg->cellDimensions(myLayerNumTemp, 0)[0];
+    double cell_size_y = waferSeg ? waferSeg->cellDimensions(0)[1] : megatileSeg->cellDimensions(myLayerNumTemp, 0)[1];
+
+    // work out how to make the magic units, if requested
+    dxinfo xseg = getNormalMagicUnitsInX( slab_dim_X,
+  unit_dim_Y,
+  cell_size_x,
+  _unitDeadE_x >= n_wafers_x;
+
+      itring(wafer_num,"waf                currentLayerBase_pos_Z += slab_dim_Z;
+ 

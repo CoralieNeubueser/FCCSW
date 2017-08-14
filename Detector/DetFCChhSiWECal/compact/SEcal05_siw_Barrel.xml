@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lccdd xmlns:compact="http://www.lcsim.org/schemas/compact/1.0"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xs:noNamespaceSchemaLocation="http://www.lcsim.org/schemas/compact/1.0/compact.xsd">
+
+  <info name="SEcal05_siw_Barrel"
+    title="SiWECal Barrel Calorimeter"
+    author="C.Neubüser"
+    url="no"
+    status="development"
+    version="1.0">
+    <comment>ECal design of ILD</comment>
+  </info>
+
+<define>
+
+  <constant name="Ecal_Barrel_halfZ" value="BarECal_dz"/>
+
+  <constant name="Ecal_nlayers1" value="21"/>
+  <constant name="Ecal_nlayers2" value="9"/>
+  <constant name="Ecal_nlayers3" value="0"/>
+  <constant name="Ecal_radiator_layers_set1_thickness" value="2.1*mm"/>
+  <constant name="Ecal_radiator_layers_set2_thickness" value="4.2*mm"/>
+  <constant name="Ecal_radiator_layers_set3_thickness" value="0*mm"/>
+
+  <constant name="Ecal_barrel_number_of_towers" value="5"/>
+  <constant name="Ecal_fiber_thickness" value=".15*mm"/>
+  <constant name="Ecal_front_face_thickness" value="0*mm"/>
+  <constant name="Ecal_lateral_face_thickness" value="2*mm"/>
+  <constant name="Ecal_support_thickness" value="8.6*mm"/>
+
+  <constant name="Ecal_Alveolus_Air_Gap" value="0.5*mm"/>
+  <constant name="Ecal_Si_thickness" value=".5*mm"/>
+  <constant name="Ecal_Slab_H_fiber_thickness" value="0.55*mm"/>
+  <constant name="Ecal_Slab_PCB_thickness" value="0.8*mm"/>
+  <constant name="Ecal_Slab_copper_thickness" value="0.4*mm"/>
+  <constant name="Ecal_Slab_glue_gap" value="0.1*mm"/>
+  <constant name="Ecal_Slab_ground_thickness" value="0.1*mm"/>
+  <constant name="Ecal_Slab_shielding" value="0.1*mm"/>
+  <constant name="Ecal_guard_ring_size" value="0.5*mm"/>
+  <constant name="Ecal_n_wafers_per_tower" value="2"/>
+
+  <constant name="Ecal_barrel_z_modules" value="5"/>
+  <constant name="Ecal_Barrel_Preshower" value="0"/>
+  <constant name="Ecal_layer_pattern" type="string" value="0"/>
+  <constant name="Ecal_end_of_slab_strategy" value="1"/>
+  <constant name="Ecal_cells_across_megatile" value="18"/>
+  <constant name="Ecal_strips_across_megatile" value="1"/>
+  <constant name="Ecal_strips_along_megatile" value="1"/>
+  <constant name="Ecal_Endcap_Preshower" value="0"/>
+
+  <constant name="Ecal_cables_gap" value="100.*mm"/>
+
+  <!-- needed only for ecal ring driver... -->
+  <constant name="Ecal_cells_size" value="5.*mm"/>
+  <constant name="Ecal_Sc_reflector_thickness" value="0.057*mm"/>
+  <constant name="Ecal_Sc_thickness" value="2.0*mm"/>
+  <constant name="Ecal_Slab_Sc_PCB_thickness" value="0.8*mm"/>
+
+</define>
+<!--
+  <display>
+    <vis name="ecal_envelope" r="0.1" g="0.2" b="0.6" alpha="1" showDaughers="false" visible="true" />
+  </display>
+-->
+<detectors>
+  <detector name="EcalBarrel" type="SEcal05_Barrel" id="BarECal_id" readout="EcalBarrelCollection" vis="BlueVis" >
+    
+    <comment>EM Calorimeter Barrel</comment>
+    <envelope vis="ILD_ECALVis">
+      <shape type="PolyhedraRegular" numsides="Ecal_symmetry"  rmin="Ecal_inner_radius - env_safety" 
+	     rmax="Ecal_outer_radius + env_safety" dz="2.*Ecal_half_length + env_safety"  material = "Air" vis="Invisible" />
+      <rotation x="0*deg" y="0*deg" z="90*deg-180*deg/Ecal_symmetry"/>
+    </envelope>
+    
+    <type_flags type=" DetType_CALORIMETER + DetType_BARREL + DetType_ELECTROMAGNETIC " />
+
+    <dimensions numsides="Ecal_symmetry" rmin="Ecal_inner_radius" rmax="Ecal_outer_radius" z="Ecal_half_length" />
+    <staves  material = "G4_W"  vis="BlueVis"/>
+
+    <!-- this has all sort of assumptions in it...like even/odd number in first/second stack -->
+
+    <layer repeat="Ecal_nlayers1/2" vis="SeeThrough" > <!-- 10 double SD Layers, and 5 W palte after each double SD Layer -->
+        <slice material = "G4_AIR"         thickness = "Ecal_Alveolus_Air_Gap/2."                vis="Invisible" />
+        <slice material = "siPCBMix"       thickness = "Ecal_Slab_PCB_thickness+Ecal_Slab_copper_thickness+Ecal_Slab_shielding" vis="Invisible" />
+        <slice material = "G4_AIR"         thickness = "Ecal_Slab_glue_gap"                      vis="Invisible" />
+        <slice material = "Si"             thickness = "Ecal_Si_thickness" sensitive = "yes"     vis="Invisible"    />
+        <slice material = "GroundOrHVMix"  thickness = "Ecal_Slab_ground_thickness"              vis="Invisible" />
+        <slice material = "CarbonFiber"    thickness = "Ecal_fiber_thickness"                    vis="Invisible" />
+        <slice material = "G4_W"           thickness = "Ecal_radiator_layers_set1_thickness"   vis="BlueVis"   radiator="yes"/>
+        <slice material = "CarbonFiber"    thickness = "Ecal_fiber_thickness"                    vis="Invisible" />
+        <slice material = "GroundOrHVMix"  thickness = "Ecal_Slab_ground_thickness"              vis="Invisible" />
+        <slice material = "Si"             thickness = "Ecal_Si_thickness" sensitive = "yes"     vis="Invisible"    />
+        <slice material = "G4_AIR"         thickness = "Ecal_Slab_glue_gap"                      vis="Invisible" />
+        <slice material = "siPCBMix"       thickness = "Ecal_Slab_PCB_thickness+Ecal_Slab_copper_thickness+Ecal_Slab_shielding" vis="Invisible" />
+        <slice material = "G4_AIR"         thickness = "Ecal_Alveolus_Air_Gap/2."                vis="Invisible" />
+        <!-- There is a structure after each active layer. (W+Fiber) W will be built inside dirver, 2 Fiber will be used in placement, not here. -->
+    </layer>
+    <layer repeat="(Ecal_nlayers2+1)/2" vis="SeeThrough">
+        <!-- Here is only the active layer, each layer have 5 alveolus -->
+        <slice material = "G4_AIR"         thickness = "Ecal_Alveolus_Air_Gap/2."                vis="Invisible" />
+        <slice material = "siPCBMix"       thickness = "Ecal_Slab_PCB_thickness+Ecal_Slab_copper_thickness+Ecal_Slab_shielding" vis="Invisible" />
+        <slice material = "G4_AIR"         thickness = "Ecal_Slab_glue_gap"                      vis="Invisible" />
+        <slice material = "Si"             thickness = "Ecal_Si_thickness" sensitive = "yes"     vis="Invisible"    />
+        <slice material = "GroundOrHVMix"  thickness = "Ecal_Slab_ground_thickness"              vis="Invisible" />
+        <slice material = "CarbonFiber"    thickness = "Ecal_fiber_thickness"                    vis="Invisible" />
+        <slice material = "G4_W"           thickness = "Ecal_radiator_layers_set2_thickness"   vis="BlueVis"   radiator="yes"/>
+        <slice material = "CarbonFiber"    thickness = "Ecal_fiber_thickness"                    vis="Invisible" />
+        <slice material = "GroundOrHVMix"  thickness = "Ecal_Slab_ground_thickness"              vis="Invisible" />
+        <slice material = "Si"             thickness = "Ecal_Si_thickness" sensitive = "yes"     vis="Invisible"    />
+        <slice material = "G4_AIR"         thickness = "Ecal_Slab_glue_gap"                      vis="Invisible" />
+        <slice material = "siPCBMix"       thickness = "Ecal_Slab_PCB_thickness+Ecal_Slab_copper_thickness+Ecal_Slab_shielding" vis="Invisible" />
+        <slice material = "G4_AIR"         thickness = "Ecal_Alveolus_Air_Gap/2."                vis="Invisible" />
+        <!-- There is a structure after each active layer.(W+Fiber) will be built inside dirver, 2 Fiber will be used in placement, not here. -->
+    </layer>
+  </detector>
+</detectors>
+
+<readouts>
+<!-- megatile-based segmentation for SEcal05 drivers-->
+<readout name="EcalBarrelCollection">
+  <segmentation type="MegatileLayerGridXY"/>
+  <id>system:5,module:3,stave:4,tower:5,layer:6,wafer:6,cellX:32:-16,cellY:-16</id>
+</readout>
+</readouts>
+
+</lccdd>

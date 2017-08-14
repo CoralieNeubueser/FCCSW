@@ -3,7 +3,7 @@
 // Gaudi
 #include "GaudiKernel/PhysicalConstants.h"
 #include "GaudiKernel/ITHistSvc.h"
-#include "TH1D.h"
+#include "TH1F.h"
 
 // datamodel
 #include "datamodel/CaloClusterCollection.h"
@@ -53,24 +53,24 @@ StatusCode CreateCaloClustersSlidingWindow::initialize() {
   info() << "CreateCaloClustersSlidingWindow initialized" << endmsg;
 
   // register histograms
-  h_Fside = new TH1D("h_Fside","h_Fside",100,0,1);
-  h_ws3 = new TH1D("h_ws3","h_ws3",100,0,1);
-  h_DeltaE = new TH1D("h_DeltaE","h_DeltaE",100,0,1);
-  h_Eratio = new TH1D("h_Eratio","h_Eratio",100,0,1);
+  h_Fside = new TH1F("h_Fside","h_Fside",100,0,1);
+  h_ws3 = new TH1F("h_ws3","h_ws3",100,0,1);
+  h_DeltaE = new TH1F("h_DeltaE","h_DeltaE",100,0,1);
+  h_Eratio = new TH1F("h_Eratio","h_Eratio",100,0,1);
   
-  if (m_histSvc->regHist("rec/Fside", h_Fside).isFailure()){
+  if (m_histSvc->regHist("/rec/Fside", h_Fside).isFailure()){
     error() << "couldn't register histogram" << endmsg;
     return StatusCode::FAILURE;
   }
-  if (m_histSvc->regHist("rec/ws3", h_ws3).isFailure()){
+  if (m_histSvc->regHist("/rec/ws3", h_ws3).isFailure()){
     error() << "couldn't register histogram" << endmsg;
     return StatusCode::FAILURE;
   }
-  if (m_histSvc->regHist("rec/DeltaE", h_DeltaE).isFailure()){
+  if (m_histSvc->regHist("/rec/DeltaE", h_DeltaE).isFailure()){
     error() << "couldn't register histogram" << endmsg;
     return StatusCode::FAILURE;
   }
-  if (m_histSvc->regHist("rec/Eratio", h_Eratio).isFailure()){
+  if (m_histSvc->regHist("/rec/Eratio", h_Eratio).isFailure()){
     error() << "couldn't register histogram" << endmsg;
     return StatusCode::FAILURE;
   }
@@ -102,7 +102,8 @@ StatusCode CreateCaloClustersSlidingWindow::execute() {
   for (int iEta = 0; iEta < m_nEtaTowerFirstLayer; iEta++) {
     for (int iPhi = 0; iPhi < m_nPhiTowerFirstLayer; iPhi++) {
       float towerEnergy = m_towersFirstLayer[iEta][iPhi] * cosh(m_towerToolFirstLayer->eta(iEta));
-      energyTowers[towerEnergy] = std::make_pair(iEta, iPhi);
+      if (towerEnergy != 0 )
+	energyTowers[towerEnergy] = std::make_pair(iEta, iPhi);
     }
   }
   double energyMaxima[energyTowers.size()] = {0.};
@@ -118,8 +119,14 @@ StatusCode CreateCaloClustersSlidingWindow::execute() {
   int iPhi_firstMaximum = energyTowers.at(energyMaxima[0]).second;
 
   // Calculation of front side energy ratio
-  float energyPM3 = energyMaxima[0] + m_towersFirstLayer[iEta_firstMaximum-3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
-  float energyPM1 =  energyMaxima[0] + m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
+  float energyPM3 = energyMaxima[0];
+  if (iEta_firstMaximum >= 3 && ((iEta_firstMaximum+3) < m_towersFirstLayer.size()))
+    energyPM3 += m_towersFirstLayer[iEta_firstMaximum-3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+3][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+2][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
+  
+  float energyPM1 =  energyMaxima[0];
+  if (iEta_firstMaximum >= 1 && ((iEta_firstMaximum+1) < m_towersFirstLayer.size()))
+    energyPM1 += m_towersFirstLayer[iEta_firstMaximum-1][iPhi_firstMaximum] + m_towersFirstLayer[iEta_firstMaximum+1][iPhi_firstMaximum];
+  
   float F_side = (energyPM3 - energyPM1)/energyPM1;
   h_Fside->Fill(F_side);
 
@@ -151,17 +158,19 @@ StatusCode CreateCaloClustersSlidingWindow::execute() {
 	stripCellEnergy += energyStrip;
       }
     }
-    info() << "energy of strip cell : " << stripCellEnergy << endmsg;
-    energyStripCells[stripCellEnergy] = index;
-    indexStripCells[index] = stripCellEnergy;
-    iEta += (binsEta-1);
+    if (stripCellEnergy != 0){
+      info() << "energy of strip cell : " << stripCellEnergy << endmsg;
+      energyStripCells[stripCellEnergy] = index;
+      indexStripCells[index] = stripCellEnergy;
+      iEta += (binsEta-1);
+    } 
   }  
   double energyMaximaStripCells[energyStripCells.size()] = {0.};
   float ws3_squared=0.;
   int iStripCells=0;
   for (itStrips = energyStripCells.begin(); itStrips != energyStripCells.end(); ++itStrips){
     float key = itStrips->first;
-    ws3_squared += key * pow((itStrips->second - iMax),2) / key;
+    ws3_squared += key * pow((energyStripCells[key] - iMax),2) / key;
     energyMaximaStripCells[iStripCells] = key;
     info() << "Energy  of strip cells:       " << key << endmsg;
     info() << "Indices of strip cells:       " << itStrips->second << endmsg;

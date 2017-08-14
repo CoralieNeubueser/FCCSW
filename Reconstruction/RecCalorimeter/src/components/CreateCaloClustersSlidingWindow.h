@@ -16,7 +16,7 @@ namespace fcc {
 class CaloClusterCollection;
 }
 
-class TH1D;
+class TH1F;
 class ITHistSvc;
 
 // Cluster
@@ -85,15 +85,6 @@ public:
    */
   StatusCode finalize();
 
-  /// hitsogram Fside
-  TH1D* h_Fside;
-  /// hitsogram ws3
-  TH1D* h_ws3;
-  /// hitsogram DeltaE
-  TH1D* h_DeltaE;
-  /// hitsogram Eratio
-  TH1D* h_Eratio;
-
 private:
   /**  Correct way to access the neighbour of the phi tower, taking into account the full coverage in phi.
    *   Full coverage means that first tower in phi, with ID = 0 is a direct neighbour
@@ -101,6 +92,16 @@ private:
    *   @param[in] aIPhi requested ID of a phi tower, may be < 0 or >= m_nPhiTower
    *   @return  ID of a tower - shifted and corrected (in [0, m_nPhiTower) range)
    */
+
+  /// histogram Fside                                                                                                                                                                                             
+  TH1F* h_Fside;
+  /// hstogram ws3                                                                                                                                                                                                  
+  TH1F* h_ws3;
+  /// histogram DeltaE                                                                                                                                                                                                            
+  TH1F* h_DeltaE;
+  /// histogram Eratio                                                                                                                                                                                                                     
+  TH1F* h_Eratio;
+
   // Pointer to the interface of histogram service
   ServiceHandle<ITHistSvc> m_histSvc;
   unsigned int phiNeighbour(int aIPhi) const;

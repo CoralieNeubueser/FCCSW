@@ -130,21 +130,21 @@
       <sensitive type="SimpleCalorimeterSD"/>
       <dimensions rmin1="HFWD_rmin1"  rmin2="HFWD_rmin2" rmax="HFWD_rmax" dz="(HFWD_z2-HFWD_z1)/2." z_offset="HFWD_z1+(HFWD_z2-HFWD_z1)/2."/>
       <active thickness="HFWD_lAr_thickness">
-        <material name="LAr"/>
+        <material name="LAr_hcal"/>
       </active>
       <passive  sensitive="false">
         <inner thickness="HFWD_Cu_thickness">
-          <material name="Copper"/>
+          <material name="Copper_hcal"/>
         </inner>
         <glue thickness="0">
-          <material name="Copper"/>
+          <material name="Copper_hcal"/>
         </glue>
         <outer thickness="0">
-          <material name="Copper"/>
+          <material name="Copper_hcal"/>
         </outer>
       </passive>
       <readout thickness="HFWD_readout_thickness" sensitive="false">
-        <material name="PCB"/>
+        <material name="PCB_hcal"/>
       </readout>
     </detector>
     negative side: cryostat

@@ -39,16 +39,16 @@ namespace DDSegmentation {
 class CombinedCaloTopoCluster : public GaudiAlgorithm {
  public:
   CombinedCaloTopoCluster(const std::string& name, ISvcLocator* svcLoc);
-
+  
   StatusCode initialize();
   /**  Find cells with a signal to noise ratio > 6 for ECal and > 4 for HCal, following ATLAS note ATL-LARG-PUB-2008-002.
    *   For simulation without electronic and pile-up noise, the average noise levels are taken as reference for seeding (1.5 and 3.5MeV/cell for E and HCAL, electronic noise only), (2.5 and 100MeV/cell for E and HCAL, added pile-up).
-   *   @return list of seed cells ("proto-clusters").
-   */
-  virtual void findingSeeds(const fcc::PositionedCaloHitCollection* cells, double threshold, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t, fcc::PositionedCaloHit>& allCells) final;
-  /**Building proto-clusters
+   *   @return list of seed cells to build proto-clusters.
+   */ 
+  virtual void findingSeeds(const fcc::PositionedCaloHitCollection* cells, double threshold, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells);
+  /** Build proto-clusters
   */
-  virtual void buildingProtoCluster(const std::map<uint64_t, std::vector<uint64_t> >& neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t, fcc::PositionedCaloHit>& allCells, fcc::CaloClusterCollection* preClusterCollection) final;
+  virtual void buildingProtoCluster(std::string type, double neighbourThr, const std::unordered_map<uint64_t,std::vector<uint64_t> > neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells, fcc::CaloClusterCollection* preClusterCollection);
 
   StatusCode execute();
 
@@ -85,6 +85,21 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   /// PhiEta segmentation of the hadronic detector (owned by DD4hep)
   DD4hep::DDSegmentation::GridPhiEta* m_hcalSegmentation;
 
+  // Map of all cells 
+  std::unordered_map<uint64_t, double> m_ecalDetCells;
+  std::unordered_map<uint64_t, double> m_hcalDetCells;
+  /// all active Cells
+  std::map<uint64_t, fcc::PositionedCaloHit> m_allCellsEcal;
+  std::map<uint64_t, fcc::PositionedCaloHit> m_allCellsHcal;
+
+  /// First list of CaloCells above seeding threshold 
+  std::vector<fcc::PositionedCaloHit> firstSeedsEcal;
+  std::vector<fcc::PositionedCaloHit> firstSeedsHcal;
+
+  /// Collection of CaloCells above neighbouring threshold associated to seeds (used for proto-clustering)
+  std::vector<fcc::CaloHitCollection> seedsEcalCollection;
+  std::vector<fcc::CaloHitCollection> seedsHcalCollection;
+
   /// Seed threshold Ecal
   Gaudi::Property<double> m_seedThr_ecal{this, "seedThresholdEcal", 7.5, "seed threshold estimate [MeV]"};
   /// Seed threshold hcal
@@ -94,24 +109,15 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   /// Seed threshold hcal
   Gaudi::Property<double> m_neighbourThr_hcal{this, "neighbourThresholdHcal", 3.5, "neighbour threshold estimate [MeV]"};
 
-  // Map of cellIDs to vectro of neighbouring cell ids
-  std::map<uint64_t, std::vector<uint64_t> > NeighboursMapEcal;
-  std::map<uint64_t, std::vector<uint64_t> > NeighboursMapHcal;
- /// allCells
-  std::map<uint64_t, fcc::PositionedCaloHit> allCellsEcal;
-  std::map<uint64_t, fcc::PositionedCaloHit> allCellsHcal;
-  /// First list of CaloCells above seeding threshold 
-  std::vector<fcc::PositionedCaloHit> firstSeedsEcal;
-  std::vector<fcc::PositionedCaloHit> firstSeedsHcal;
-
-  /// Collection of CaloCells above neighbouring threshold associated to seeds (used for proto-clustering)
-  std::vector<fcc::CaloHitCollection> seedsEcalCollection;
-  std::vector<fcc::CaloHitCollection> seedsHcalCollection;
-
   /// Name of the bit-fields searching for neighbours in ECAL                      
   const std::vector<std::string> m_fieldNamesEcal{"layer","phi","eta"};
   /// Name of the bit-fields searching for neighbours in HCAL                      
   const std::vector<std::string> m_fieldNamesHcal{"layer","phi","eta"};
+
+  std::vector<std::pair<int, int>> m_fieldExtremesEcal;
+  std::vector<std::pair<int, int>> m_fieldExtremesHcal;
+  DD4hep::DDSegmentation::BitField64* m_decoderEcal;
+  DD4hep::DDSegmentation::BitField64* m_decoderHcal;
 
 };
 

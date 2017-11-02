@@ -11,7 +11,7 @@ num_events=1
 bfield=0
 i=1
 particle=1
-eta=0.
+eta=0.36
 
 particleType = "pi-"
 if particle==0:
@@ -64,10 +64,10 @@ geantsim = SimG4Alg("SimG4Alg",
 # readout name
 ecalReadoutName = "ECalBarrelPhiEta"
 # active material identifier name
-ecalIdentifierName = ["layer"]
+ecalIdentifierName = ["module","layer"]
 # active material volume name
-ecalVolumeName = ["layer"]
-ecalNumberOfLayers = [130]
+ecalVolumeName = ["module","layer"]
+ecalNumberOfLayers = [1408,8]
 # ECAL bitfield names & values system:4,cryo:1,type:3,subtype:3,layer:8,eta:9,phi:10
 ecalFieldNames = ["system"]
 ecalFieldValues = [5]
@@ -86,9 +86,10 @@ hcalFieldValues = [8]
 from Configurables import CalibrateInLayersTool
 calibEcells = CalibrateInLayersTool("Calibrate",
                                     # sampling fraction obtained using SamplingFractionInLayers from DetStudies package                                                                                                                  
-                                    samplingFraction = [0.12125] * 4 + [0.14283] * 18 + [0.16354] * 18 + [0.17662] * 18 + [0.18867] * 18 + [0.19890] * 18 + [0.20637] * 18 + [0.20802] * 18,
+                                    samplingFraction = [0.12125, 0.14283, 0.16354, 0.17662, 0.18867, 0.19890, 0.20637, 0.20802],
                                     readoutName = ecalReadoutName,
                                     layerFieldName = "layer")
+                                    # firstLayerId =1)
 #Configure tools for calo reconstruction
 from Configurables import CalibrateCaloHitsTool
 calibHcells = CalibrateCaloHitsTool("CalibrateHCal", invSamplingFraction="34.5 ")
@@ -123,22 +124,22 @@ resegmentHcal = RedoSegmentation("ReSegmentationHcal",
                                  # old bitfield (readout)
                                  oldReadoutName = "BarHCal_Readout",
                                  # specify which fields are going to be altered (deleted/rewritten)
-                                 oldSegmentationIds = ["module","tile"],
+                                 oldSegmentationIds = ["eta"],
                                  # new bitfield (readout), with new segmentation
                                  newReadoutName = hcalReadoutName,
                                  debugPrint = 10,
-                                 OutputLevel = DEBUG,
+                                 OutputLevel = INFO,
                                  inhits = "HCalPositions",
                                  outhits = "newHCalCells")
 resegmentEcal = RedoSegmentation("ReSegmentationEcal",
                                  # old bitfield (readout)
                                  oldReadoutName = "ECalBarrelEta",
                                  # specify which fields are going to be altered (deleted/rewritten)
-                                 oldSegmentationIds = ["module"],
+#                                 oldSegmentationIds = ["module"],
                                  # new bitfield (readout), with new segmentation
                                  newReadoutName = ecalReadoutName,
                                  debugPrint = 10,
-                                 OutputLevel = DEBUG,
+                                 OutputLevel = INFO,
                                  inhits = "ECalPositions",
                                  outhits = "newECalCells")
 
@@ -171,10 +172,12 @@ hcalgeo = TubeLayerPhiEtaCaloTool("HcalGeo",
                                   # to make it working with MergeLayers algorithm
                                   activeVolumesNumber = hcalNumberOfLayers,
                                   OutputLevel = INFO)
+
 createTopoClusters = CombinedCaloTopoCluster("CreateTopoClusters",
-                                             ecalCells = "newECalCells",
-                                             hcalCells = "newHCalCells",
-                                             geometryTool = ecalgeo,
+                                             ecalCells = "newECalPositions",
+                                             hcalCells = "newHCalPositions",
+                                             geometryToolEcal = ecalgeo,
+                                             geometryToolHcal = hcalgeo,
                                              ecalReadoutName = ecalReadoutName,
                                              ecalFieldNames = ecalFieldNames,
                                              ecalFieldValues = ecalFieldValues,
@@ -183,10 +186,10 @@ createTopoClusters = CombinedCaloTopoCluster("CreateTopoClusters",
                                              hcalFieldValues = hcalFieldValues,
                                              seedThresholdEcal =  7.5, #in MeV
                                              neighbourThresholdEcal = 3, # in MeV
-                                             OutputLevel = DEBUG)
+                                             OutputLevel = INFO)
 createTopoClusters.clusters.Path = "topoClusters"
 
-out = PodioOutput("out", filename = "~/FCCSW/condor/output_ecal_reconstructionTopoClusters_"+str(particleType)+str(energy)+"GeV_bfield"+str(bfield)+"_part"+str(i)+".root",
+out = PodioOutput("out", filename = "~/FCCSW/condor/output_reconstructionTopoClusters_"+str(particleType)+str(energy/GeV)+"GeV_bfield"+str(bfield)+"_part"+str(i)+".root",
                   OutputLevel=DEBUG)
 out.outputCommands = ["keep *"]#,"drop ECalHits"]
 

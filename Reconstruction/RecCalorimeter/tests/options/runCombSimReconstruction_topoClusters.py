@@ -6,7 +6,7 @@ from GaudiKernel.SystemOfUnits import MeV,GeV
 #seed_array = np.loadtxt('/afs/cern.ch/user/c/cneubuse/FCCSW/condor/seeds.txt',dtype='int',delimiter=',')                                                                                                                                   
 #set these in the .sh script                                                                                                                                                                                                                
 
-energy=10*GeV
+energy=100*GeV
 num_events=1
 bfield=0
 i=1
@@ -110,14 +110,18 @@ createHcells = CreateCaloCells("CreateHCaloCells",
                                hits="HCalHits",
                                cells="HCalCells")
 
-from Configurables import CreateVolumeCaloPositions
+from Configurables import CreateVolumeCaloPositions, CreateCellCaloPositions
 # Ecal cell positions
 positionsEcal = CreateVolumeCaloPositions("positionsEcal", OutputLevel = INFO)
 positionsEcal.hits.Path = "ECalCells"
 positionsEcal.positionedHits.Path = "ECalPositions"
-positionsHcal = CreateVolumeCaloPositions("positionsHcal", OutputLevel = INFO)
+volPositionsHcal = CreateVolumeCaloPositions("volPositionsHcal", OutputLevel = INFO)
+volPositionsHcal.hits.Path = "HCalCells"
+volPositionsHcal.positionedHits.Path = "HCalPositions"
+
+positionsHcal = CreateCellCaloPositions("cellPositionsHcal", readoutName="BarHCal_Readout", OutputLevel = INFO)
 positionsHcal.hits.Path = "HCalCells"
-positionsHcal.positionedHits.Path = "HCalPositions"
+positionsHcal.positionedHits.Path = "cellHCalPositions"
 
 from Configurables import RedoSegmentation
 resegmentHcal = RedoSegmentation("ReSegmentationHcal",
@@ -129,7 +133,7 @@ resegmentHcal = RedoSegmentation("ReSegmentationHcal",
                                  newReadoutName = hcalReadoutName,
                                  debugPrint = 10,
                                  OutputLevel = INFO,
-                                 inhits = "HCalPositions",
+                                 inhits = "cellHCalPositions",
                                  outhits = "newHCalCells")
 resegmentEcal = RedoSegmentation("ReSegmentationEcal",
                                  # old bitfield (readout)
@@ -143,14 +147,13 @@ resegmentEcal = RedoSegmentation("ReSegmentationEcal",
                                  inhits = "ECalPositions",
                                  outhits = "newECalCells")
 
-from Configurables import CreateVolumeCaloPositions
 # Ecal cell positions
-positionsEcal2 = CreateVolumeCaloPositions("newPositionsEcal", OutputLevel = INFO)
+positionsEcal2 = CreateCellCaloPositions("cellPositionsEcal", readoutName=ecalReadoutName, OutputLevel = INFO)
 positionsEcal2.hits.Path = "newECalCells"
-positionsEcal2.positionedHits.Path = "newECalPositions"
-positionsHcal2 = CreateVolumeCaloPositions("newPositionsHcal", OutputLevel = INFO)
+positionsEcal2.positionedHits.Path = "cellECalPositions"
+positionsHcal2 = CreateCellCaloPositions("cellPositionsHcalEtaPhi", readoutName=hcalReadoutName, OutputLevel = INFO)
 positionsHcal2.hits.Path = "newHCalCells"
-positionsHcal2.positionedHits.Path = "newHCalPositions"
+positionsHcal2.positionedHits.Path = "cellHCalPositionsEtaPhi"
 
 #Create topo clusters
 from Configurables import TubeLayerPhiEtaCaloTool, CombinedCaloTopoCluster
@@ -174,14 +177,14 @@ hcalgeo = TubeLayerPhiEtaCaloTool("HcalGeo",
                                   OutputLevel = INFO)
 
 createTopoClusters = CombinedCaloTopoCluster("CreateTopoClusters",
-                                             ecalCells = "newECalPositions",
-                                             hcalCells = "newHCalPositions",
+                                             ecalCells = "cellECalPositions",
+                                             hcalCells = "cellHCalPositions",
                                              geometryToolEcal = ecalgeo,
                                              geometryToolHcal = hcalgeo,
                                              ecalReadoutName = ecalReadoutName,
                                              ecalFieldNames = ecalFieldNames,
                                              ecalFieldValues = ecalFieldValues,
-                                             hcalReadoutName = hcalReadoutName,
+                                             hcalReadoutName = "BarHCal_Readout",
                                              hcalFieldNames = hcalFieldNames,
                                              hcalFieldValues = hcalFieldValues,
                                              seedThresholdEcal =  7.5, #in MeV
@@ -202,6 +205,7 @@ geantsim.AuditExecute = True
 createEcells.AuditExecute = True
 createHcells.AuditExecute = True
 positionsEcal.AuditExecute = True
+volPositionsHcal.AuditExecute = True
 positionsHcal.AuditExecute = True
 resegmentEcal.AuditExecute = True
 resegmentHcal.AuditExecute = True
@@ -213,7 +217,7 @@ out.AuditExecute = True
 ApplicationMgr(
     TopAlg = [geantsim,
               createEcells,createHcells,
-              positionsEcal,positionsHcal,
+              positionsEcal,volPositionsHcal,positionsHcal,
               resegmentEcal,resegmentHcal,
               positionsEcal2,positionsHcal2,
               createTopoClusters,

@@ -48,8 +48,11 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   virtual void findingSeeds(const fcc::PositionedCaloHitCollection* cells, double threshold, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells);
   /** Build proto-clusters
   */
-  virtual void buildingProtoCluster(std::string type, double neighbourThr, const std::unordered_map<uint64_t,std::vector<uint64_t> > neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells, fcc::CaloClusterCollection* preClusterCollection);
-
+  virtual void buildingProtoCluster(double neighbourThr, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection);
+  /** Search for neighbours and add them to lists
+   */
+  std::vector<uint64_t> searchForNeighbours(const uint64_t id, uint clusterNum, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::map<uint64_t, fcc::PositionedCaloHit>& allCells, std::map<uint64_t, uint>& clusterOfCell, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection); 
+  
   StatusCode execute();
 
   StatusCode finalize();
@@ -60,7 +63,7 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   /// Handle for hadronic calorimeter cells (input collection)
   DataHandle<fcc::PositionedCaloHitCollection> m_hcalCells{"hcalCells", Gaudi::DataHandle::Reader, this};
   // Pre-cluster collections
-  DataHandle<fcc::CaloClusterCollection> m_preClusterCollection{"calo/clusters", Gaudi::DataHandle::Writer, this};
+  DataHandle<fcc::CaloClusterCollection> m_clusterCollection{"clusters", Gaudi::DataHandle::Writer, this};
   /// Handle for the geometry tool
   ToolHandle<ICalorimeterTool> m_geoToolEcal{"TubeLayerPhiEtaCaloTool", this};
   /// Handle for the geometry tool
@@ -105,14 +108,14 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   /// Seed threshold hcal
   Gaudi::Property<double> m_seedThr_hcal{this, "seedThresholdHcal", 11.5, "seed threshold estimate [MeV]"};
   /// Seed threshold Ecal
-  Gaudi::Property<double> m_neighbourThr_ecal{this, "neighbourThresholdEcal", 3, "neighbour threshold estimate [MeV]"};
+  Gaudi::Property<double> m_neighbourThr_ecal{this, "neighbourThresholdEcal", 0., "neighbour threshold estimate [MeV]"};//3
   /// Seed threshold hcal
-  Gaudi::Property<double> m_neighbourThr_hcal{this, "neighbourThresholdHcal", 3.5, "neighbour threshold estimate [MeV]"};
+  Gaudi::Property<double> m_neighbourThr_hcal{this, "neighbourThresholdHcal", 0., "neighbour threshold estimate [MeV]"};//3.5
 
   /// Name of the bit-fields searching for neighbours in ECAL                      
-  const std::vector<std::string> m_fieldNamesEcal{"layer","phi","eta"};
+  const std::vector<std::string> m_fieldNamesEcal{"module","layer","phi","eta"};
   /// Name of the bit-fields searching for neighbours in HCAL                      
-  const std::vector<std::string> m_fieldNamesHcal{"layer","phi","eta"};
+  const std::vector<std::string> m_fieldNamesHcal{"row","layer","phi"};
 
   std::vector<std::pair<int, int>> m_fieldExtremesEcal;
   std::vector<std::pair<int, int>> m_fieldExtremesHcal;

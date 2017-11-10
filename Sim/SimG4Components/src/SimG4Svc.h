@@ -11,6 +11,7 @@
 #include "SimG4Interface/ISimG4Svc.h"
 
 // Gaudi
+#include "GaudiKernel/IRndmGenSvc.h"
 #include "GaudiKernel/Service.h"
 #include "GaudiKernel/ToolHandle.h"
 
@@ -57,6 +58,8 @@ public:
 private:
   /// Pointer to the tool service
   SmartIF<IToolSvc> m_toolSvc;
+  /// Pointer to the random numbers service
+  SmartIF<IRndmGenSvc> m_randSvc;
   /// Handle for the detector construction tool
   ToolHandle<ISimG4DetectorConstruction> m_detectorTool{"SimG4DD4hepDetector", this, true};
   /// Handle for the Geant physics list tool
@@ -66,9 +69,11 @@ private:
   /// Handle for the magnetic field initialization
   ToolHandle<ISimG4MagneticFieldTool> m_magneticFieldTool{"SimG4ConstantMagneticFieldTool", this, true};
   /// Geant4 commands to be executed before user initialization
-  Gaudi::Property<std::vector<std::string>> m_g4PreInitCommands{this, "g4PreInitCommands", {}, "Geant4 commands to be executed before user initialization"};
+  Gaudi::Property<std::vector<std::string>> m_g4PreInitCommands{
+      this, "g4PreInitCommands", {}, "Geant4 commands to be executed before user initialization"};
   /// Geant4 commands to be executed after user initialization
-  Gaudi::Property<std::vector<std::string>> m_g4PostInitCommands{this, "g4PostInitCommands", {}, "Geant4 commands to be executed after user initialization"};
+  Gaudi::Property<std::vector<std::string>> m_g4PostInitCommands{
+      this, "g4PostInitCommands", {}, "Geant4 commands to be executed after user initialization"};
   /// Handles to the tools creating regions and fast simulation models
   /// to be replaced with the ToolHandleArray<ISimG4RegionTool> m_regionTools
   std::vector<ISimG4RegionTool*> m_regionTools;
@@ -76,6 +81,8 @@ private:
   /// to be deleted once the ToolHandleArray<ISimG4RegionTool> m_regionTools is in place
   Gaudi::Property<std::vector<std::string>> m_regionToolNames{
       this, "regions", {}, "Names of the tools that create regions and fast simulation models"};
+  /// Flag whether random numbers seeds should be taken from Gaudi (default: true)
+  Gaudi::Property<bool> m_rndmFromGaudi{this, "randomNumbersFromGaudi", true, "Whether random numbers should be taken from Gaudi"};
 
   /// Run Manager
   sim::RunManager m_runManager;

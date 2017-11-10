@@ -87,9 +87,16 @@ from Configurables import CalibrateInLayersTool
 calibEcells = CalibrateInLayersTool("Calibrate",
                                     # sampling fraction obtained using SamplingFractionInLayers from DetStudies package                                                                                                                  
                                     samplingFraction = [0.12125, 0.14283, 0.16354, 0.17662, 0.18867, 0.19890, 0.20637, 0.20802],
-                                    readoutName = ecalReadoutName,
+                                    readoutName = "ECalBarrelEta",
                                     layerFieldName = "layer")
-                                    # firstLayerId =1)
+
+calibEPhiEtacells = CalibrateInLayersTool("CalibratePhiEta",
+                                          # sampling fraction obtained using SamplingFractionInLayers from DetStudies package
+                                          samplingFraction = [0.12125, 0.14283, 0.16354, 0.17662, 0.18867, 0.19890, 0.20637, 0.20802],
+                                          readoutName = ecalReadoutName,
+                                          layerFieldName = "layer")
+# firstLayerId =1)
+
 #Configure tools for calo reconstruction
 from Configurables import CalibrateCaloHitsTool
 calibHcells = CalibrateCaloHitsTool("CalibrateHCal", invSamplingFraction="34.5 ")
@@ -124,6 +131,17 @@ positionsHcal.hits.Path = "HCalCells"
 positionsHcal.positionedHits.Path = "cellHCalPositions"
 
 from Configurables import RedoSegmentation
+resegmentEcal = RedoSegmentation("ReSegmentationEcal",
+                                 # old bitfield (readout)
+                                 oldReadoutName = "ECalBarrelEta",
+                                 # specify which fields are going to be altered (deleted/rewritten)
+                                 oldSegmentationIds = ["module"],
+                                 # new bitfield (readout), with new segmentation
+                                 newReadoutName = ecalReadoutName,
+                                 debugPrint = 10,
+                                 OutputLevel = INFO,
+                                 inhits = "ECalPositionedHits",
+                                 outhits = "newECalHits")
 resegmentHcal = RedoSegmentation("ReSegmentationHcal",
                                  # old bitfield (readout)
                                  oldReadoutName = "BarHCal_Readout",
@@ -133,20 +151,24 @@ resegmentHcal = RedoSegmentation("ReSegmentationHcal",
                                  newReadoutName = hcalReadoutName,
                                  debugPrint = 10,
                                  OutputLevel = INFO,
-                                 inhits = "cellHCalPositions",
-                                 outhits = "newHCalCells")
-resegmentEcal = RedoSegmentation("ReSegmentationEcal",
-                                 # old bitfield (readout)
-                                 oldReadoutName = "ECalBarrelEta",
-                                 # specify which fields are going to be altered (deleted/rewritten)
-#                                 oldSegmentationIds = ["module"],
-                                 # new bitfield (readout), with new segmentation
-                                 newReadoutName = ecalReadoutName,
-                                 debugPrint = 10,
-                                 OutputLevel = INFO,
-                                 inhits = "ECalPositions",
-                                 outhits = "newECalCells")
+                                 inhits = "HCalPositionedHits",
+                                 outhits = "newHCalHits")
 
+createNewEcells = CreateCaloCells("CreateNewECaloCells",
+                                  doCellCalibration=True,
+                                  calibTool=calibEPhiEtacells,
+                                  addCellNoise=False, filterCellNoise=False,
+                                  OutputLevel=DEBUG,
+                                  hits="newECalHits",
+                                  cells="newECalCells")
+
+createNewHcells = CreateCaloCells("CreateNewHCaloCells",
+                                  doCellCalibration=True,
+                                  calibTool=calibHcells,
+                                  addCellNoise = False, filterCellNoise = False,
+                                  OutputLevel = DEBUG,
+                                  hits="newHCalHits",
+                                  cells="newHCalCells")
 # Ecal cell positions
 positionsEcal2 = CreateCellCaloPositions("cellPositionsEcal", readoutName=ecalReadoutName, OutputLevel = INFO)
 positionsEcal2.hits.Path = "newECalCells"
@@ -156,41 +178,16 @@ positionsHcal2.hits.Path = "newHCalCells"
 positionsHcal2.positionedHits.Path = "cellHCalPositionsEtaPhi"
 
 #Create topo clusters
-from Configurables import TubeLayerPhiEtaCaloTool, CombinedCaloTopoCluster
-ecalgeo = TubeLayerPhiEtaCaloTool("EcalGeo",
-                                  readoutName = ecalReadoutName,
-                                  activeVolumeNames = ecalVolumeName,
-                                  activeFieldNames = ecalIdentifierName,
-                                  fieldNames = ecalFieldNames,
-                                  fieldValues = ecalFieldValues,
-                                  # to make it working with MergeLayers algorithm
-                                  activeVolumesNumber = ecalNumberOfLayers,
-                                  OutputLevel = INFO)
-hcalgeo = TubeLayerPhiEtaCaloTool("HcalGeo",
-                                  readoutName = hcalReadoutName,
-                                  activeVolumeNames = hcalVolumeName,
-                                  activeFieldNames = hcalIdentifierName,
-                                  fieldNames = hcalFieldNames,
-                                  fieldValues = hcalFieldValues,
-                                  # to make it working with MergeLayers algorithm
-                                  activeVolumesNumber = hcalNumberOfLayers,
-                                  OutputLevel = INFO)
-
+from Configurables import  CombinedCaloTopoCluster
 createTopoClusters = CombinedCaloTopoCluster("CreateTopoClusters",
                                              ecalCells = "cellECalPositions",
                                              hcalCells = "cellHCalPositions",
-                                             geometryToolEcal = ecalgeo,
-                                             geometryToolHcal = hcalgeo,
                                              ecalReadoutName = ecalReadoutName,
-                                             ecalFieldNames = ecalFieldNames,
-                                             ecalFieldValues = ecalFieldValues,
                                              hcalReadoutName = "BarHCal_Readout",
-                                             hcalFieldNames = hcalFieldNames,
-                                             hcalFieldValues = hcalFieldValues,
-                                             seedThresholdEcal =  7.5, #in MeV
-                                             neighbourThresholdEcal = 3, # in MeV
+                                             neighboursRange = 4,
                                              OutputLevel = INFO)
-createTopoClusters.clusters.Path = "topoClusters"
+createTopoClusters.clusters.Path = "caloClusters"
+createTopoClusters.clusterCells.Path = "caloClusterCells"
 
 out = PodioOutput("out", filename = "~/FCCSW/condor/output_reconstructionTopoClusters_"+str(particleType)+str(energy/GeV)+"GeV_bfield"+str(bfield)+"_part"+str(i)+".root",
                   OutputLevel=DEBUG)
@@ -208,9 +205,11 @@ positionsEcal.AuditExecute = True
 volPositionsHcal.AuditExecute = True
 positionsHcal.AuditExecute = True
 resegmentEcal.AuditExecute = True
-resegmentHcal.AuditExecute = True
+#resegmentHcal.AuditExecute = True
+createNewEcells.AuditExecute = True
+#createNewHcells.AuditExecute = True
 positionsEcal2.AuditExecute = True
-positionsHcal2.AuditExecute = True
+#positionsHcal2.AuditExecute = True
 createTopoClusters.AuditExecute = True
 out.AuditExecute = True
 
@@ -218,8 +217,9 @@ ApplicationMgr(
     TopAlg = [geantsim,
               createEcells,createHcells,
               positionsEcal,volPositionsHcal,positionsHcal,
-              resegmentEcal,resegmentHcal,
-              positionsEcal2,positionsHcal2,
+              resegmentEcal,#resegmentHcal,
+              createNewEcells,
+              positionsEcal2,#positionsHcal2,
               createTopoClusters,
               out
               ],

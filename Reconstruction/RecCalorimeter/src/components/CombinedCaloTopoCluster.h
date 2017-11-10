@@ -14,13 +14,10 @@ class IGeoSvc;
 
 // datamodel
 namespace fcc {
-  class PositionedHit;
   class CaloHitCollection;
-  class CaloHit;
-  class CaloClusterCollection;
-  class CaloCluster;
   class PositionedCaloHit;
   class PositionedCaloHitCollection;
+  class CaloClusterCollection;
 }
 
 namespace DD4hep {
@@ -51,7 +48,7 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   virtual void buildingProtoCluster(double neighbourThr, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection);
   /** Search for neighbours and add them to lists
    */
-  std::vector<uint64_t> searchForNeighbours(const uint64_t id, uint clusterNum, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::map<uint64_t, fcc::PositionedCaloHit>& allCells, std::map<uint64_t, uint>& clusterOfCell, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection); 
+  std::vector<uint64_t> searchForNeighbours(const uint64_t id, uint& clusterNum, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::map<uint64_t, fcc::PositionedCaloHit>& allCells, std::map<uint64_t, uint>& clusterOfCell, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection); 
   
   StatusCode execute();
 
@@ -62,31 +59,23 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   DataHandle<fcc::PositionedCaloHitCollection> m_ecalCells{"ecalCells", Gaudi::DataHandle::Reader, this};
   /// Handle for hadronic calorimeter cells (input collection)
   DataHandle<fcc::PositionedCaloHitCollection> m_hcalCells{"hcalCells", Gaudi::DataHandle::Reader, this};
-  // Pre-cluster collections
-  DataHandle<fcc::CaloClusterCollection> m_clusterCollection{"clusters", Gaudi::DataHandle::Writer, this};
-  /// Handle for the geometry tool
-  ToolHandle<ICalorimeterTool> m_geoToolEcal{"TubeLayerPhiEtaCaloTool", this};
-  /// Handle for the geometry tool
-  ToolHandle<ICalorimeterTool> m_geoToolHcal{"TubeLayerPhiEtaCaloTool", this};
+  // Pre-cluster collection
+  DataHandle<fcc::CaloClusterCollection> m_clusterCollection{"calo/clusters", Gaudi::DataHandle::Writer, this};
+  // Pre-cluster cells collection
+  DataHandle<fcc::CaloHitCollection> m_clusterCellsCollection{"calo/clusterCells", Gaudi::DataHandle::Writer, this};
   /// Pointer to the geometry service
   SmartIF<IGeoSvc> m_geoSvc;
   /// Name of the electromagnetic calorimeter readout
   Gaudi::Property<std::string> m_ecalReadoutName{this, "ecalReadoutName", "name of the ecal readout"};
   /// Name of thehadronic calorimeter readout
   Gaudi::Property<std::string> m_hcalReadoutName{this, "hcalReadoutName", "name of the hcal readout"};
-  /// Name of the fields describing the segmented volume
-  Gaudi::Property<std::vector<std::string>> m_ecalFieldNames{this, "ecalFieldNames"};
-  /// Values of the fields describing the segmented volume
-  Gaudi::Property<std::vector<int>> m_ecalFieldValues{this, "ecalFieldValues"};
-  /// Name of the fields describing the segmented volume
-  Gaudi::Property<std::vector<std::string>> m_hcalFieldNames{this, "hcalFieldNames"};
-  /// Values of the fields describing the segmented volume
-  Gaudi::Property<std::vector<int>> m_hcalFieldValues{this, "hcalFieldValues"};
 
   /// PhiEta segmentation of the electromagnetic detector (owned by DD4hep)
   DD4hep::DDSegmentation::GridPhiEta* m_ecalSegmentation;
   /// PhiEta segmentation of the hadronic detector (owned by DD4hep)
   DD4hep::DDSegmentation::GridPhiEta* m_hcalSegmentation;
+  // Range for neighbours to be found
+  int m_range;
 
   // Map of all cells 
   std::unordered_map<uint64_t, double> m_ecalDetCells;
@@ -99,10 +88,6 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   std::vector<fcc::PositionedCaloHit> firstSeedsEcal;
   std::vector<fcc::PositionedCaloHit> firstSeedsHcal;
 
-  /// Collection of CaloCells above neighbouring threshold associated to seeds (used for proto-clustering)
-  std::vector<fcc::CaloHitCollection> seedsEcalCollection;
-  std::vector<fcc::CaloHitCollection> seedsHcalCollection;
-
   /// Seed threshold Ecal
   Gaudi::Property<double> m_seedThr_ecal{this, "seedThresholdEcal", 7.5, "seed threshold estimate [MeV]"};
   /// Seed threshold hcal
@@ -113,7 +98,7 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   Gaudi::Property<double> m_neighbourThr_hcal{this, "neighbourThresholdHcal", 0., "neighbour threshold estimate [MeV]"};//3.5
 
   /// Name of the bit-fields searching for neighbours in ECAL                      
-  const std::vector<std::string> m_fieldNamesEcal{"module","layer","phi","eta"};
+  const std::vector<std::string> m_fieldNamesEcal{"layer","phi","eta"};
   /// Name of the bit-fields searching for neighbours in HCAL                      
   const std::vector<std::string> m_fieldNamesHcal{"row","layer","phi"};
 

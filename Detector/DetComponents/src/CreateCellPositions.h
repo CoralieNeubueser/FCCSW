@@ -7,6 +7,8 @@
 
 // FCCSW
 #include "FWCore/DataHandle.h"
+#include "DetSegmentation/GridPhiEta.h"
+
 class IGeoSvc;
 namespace DD4hep {
 namespace DDSegmentation {
@@ -51,6 +53,10 @@ private:
   DataHandle<Hits> m_hits{"hits/hits", Gaudi::DataHandle::Reader, this};
   /// Handle for positioned hits (output collection)
   DataHandle<PositionedHit> m_positionedHits{"hits/positionedHits", Gaudi::DataHandle::Writer, this};
+  DD4hep::DDSegmentation::GridPhiEta* m_segmentation; 
+  DD4hep::DDSegmentation::BitField64* m_decoder;
+  double ecalBarrelLayerRadius[8]={193.0, 198.5, 207.5, 216.5, 225.5, 234.5, 243.5, 252.5};
+
 };
 
 #endif /* DETCOMPONENTS_CREATECELLPOSITIONS_H */

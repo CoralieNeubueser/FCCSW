@@ -2,10 +2,9 @@ import os
 #import numpy as np
 from GaudiKernel.SystemOfUnits import MeV,GeV
 
-#loads array of random seeds from file                                                                                                                                                                                                   
-#seed_array = np.loadtxt('/afs/cern.ch/user/c/cneubuse/FCCSW/condor/seeds.txt',dtype='int',delimiter=',')                                                                                                                                   
-#set these in the .sh script                                                                                                                                                                                                                
-
+#loads array of random seeds from file                                       
+#seed_array = np.loadtxt('/afs/cern.ch/user/c/cneubuse/FCCSW/condor/seeds.txt',dtype='int',delimiter=',')                                                    
+#set these in the .sh script                                                    
 energy=100*GeV
 num_events=1
 bfield=0

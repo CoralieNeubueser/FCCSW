@@ -439,11 +439,11 @@ static DD4hep::Geometry::Ref_t createECalBarrelInclined(DD4hep::Geometry::LCDD& 
     activePhysVols.back().addPhysVolID("type", 0);  // 0 = active, 1 = passive, 2 = readout
   }
   DD4hep::Geometry::PlacedVolume bathPhysVol = envelopeVol.placeVolume(bathVol);
-  if (cryostat.isSensitive()) {
-    bathVol.setSensitiveDetector(aSensDet);
-    bathPhysVol.addPhysVolID("cryo", 0);
-    lLog << MSG::INFO << "Bath volume set as sensitive" << endmsg;
-  }
+//  if (cryostat.isSensitive()) {
+//    bathVol.setSensitiveDetector(aSensDet);
+//    bathPhysVol.addPhysVolID("cryo", 0);
+//    lLog << MSG::INFO << "Bath volume set as sensitive" << endmsg;
+//  }
   bathDetElem.setPlacement(bathPhysVol);
 
   for (uint iPlane = 0; iPlane < numPlanes; iPlane++) {

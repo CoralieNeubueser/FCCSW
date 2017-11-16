@@ -66,15 +66,17 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
 
   uint64_t cellid = 0;
   DD4hep::Geometry::VolumeManager volman = m_geoSvc->lcdd()->volumeManager();
-  
+  int layer, cryo;
+  double radius;  
   // Loop though hits, retrieve volume position from cellID
   for (const auto& cell : *hits) {
     cellid = cell.core().cellId;
     if (m_readoutName == "ECalBarrelPhiEta"){
       m_decoder->setValue(cellid);
-      int layer = (*m_decoder)["layer"].value();
-      double radius = ecalBarrelLayerRadius[layer-1];
-      if (layer == 0) // ecal cryo, "layer" is not set
+      layer = (*m_decoder)["layer"].value();
+      cryo = (*m_decoder)["cryo"].value();
+      radius = ecalBarrelLayerRadius[layer];
+      if (cryo == 1) // ecal cryostat set sensitive
 	radius = 268.0; 
       // global cartesian coordinates calculated from r,phi,eta, for r=1
       auto inSeg = m_segmentation->position(cellid);
@@ -106,7 +108,7 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
     // global cartesian coordinates calculated from r,phi,eta, for r=1
     auto inSeg = m_segmentation->position(cellid);
     // correction of extracted coordinates by retrieved radius of volumes
-    double radius = std::sqrt(std::pow(outGlobal[0], 2) + std::pow(outGlobal[1], 2));
+    radius = std::sqrt(std::pow(outGlobal[0], 2) + std::pow(outGlobal[1], 2));
     DD4hep::Geometry::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
     debug() << "Radius : " << radius << endmsg;
     // in case of calo discs

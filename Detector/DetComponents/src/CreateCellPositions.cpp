@@ -77,7 +77,7 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
       cryo = (*m_decoder)["cryo"].value();
       radius = ecalBarrelLayerRadius[layer];
       if (cryo == 1) // ecal cryostat set sensitive
-	radius = 268.0; 
+	radius = 268.0; // in cm
       // global cartesian coordinates calculated from r,phi,eta, for r=1
       auto inSeg = m_segmentation->position(cellid);
       DD4hep::Geometry::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
@@ -94,10 +94,7 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
 	      << outSeg.z() / dd4hep::mm << endmsg;
       continue;
     }
-    auto detelement = volman.lookupDetElement(cellid);
-    const auto& transformMatrix = detelement.worldTransformation();
-    debug() << "VolID: " << detelement.volumeID() << endmsg;
-    debug() << "DetElement ID: " << detelement.id() << endmsg;
+    const auto& transformMatrix = volman.worldTransformation(cellid);
     double outGlobal[3];
     double inLocal[] = {0, 0, 0};
     transformMatrix.LocalToMaster(inLocal, outGlobal);
@@ -118,16 +115,16 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
       radius = outGlobal[2]/std::sinh(eta);
       outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, outGlobal[2] );
     }
-    // in case of ecal cryo
-    if (radius == 0 && outGlobal[2] == 0){
-      debug() << "x, y, z positons of the volume is 0, cell positions are created for ecal cryo!" << endmsg;
-      radius = 268.0; // cm
-      outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
-    }
-    // in case that no eta segmentation is used (case of TileCal), original volume position is used in z
+    // in case that no eta segmentation is used (case of TileCal B and EB), 
+    // original volume position is used in z from placed detector element
     if (m_segmentation->gridSizeEta() > 10){
+      auto detelement = volman.lookupDetElement(cellid);
+      const auto& transform = detelement.worldTransformation();
+      double global[3];
+      transform.LocalToMaster(inLocal, global);
+      radius = std::sqrt(std::pow(global[0], 2) + std::pow(global[1], 2));
       debug() << "grid size in eta > 10, no eta segmentaion used! Cell position.z is volumes position.z" << endmsg;
-      outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, outGlobal[2] );
+      outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, global[2] );
     }
     auto edmPos = fcc::Point();
     edmPos.x = outSeg.x() / dd4hep::mm;

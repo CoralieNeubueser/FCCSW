@@ -6,7 +6,7 @@ from GaudiKernel.SystemOfUnits import MeV,GeV
 #seed_array = np.loadtxt('/afs/cern.ch/user/c/cneubuse/FCCSW/condor/seeds.txt',dtype='int',delimiter=',')                                                    
 #set these in the .sh script                                                    
 energy=100*GeV
-num_events=1
+num_events=500
 bfield=0
 i=1
 particle=1
@@ -183,12 +183,12 @@ createTopoClusters = CombinedCaloTopoCluster("CreateTopoClusters",
                                              hcalCells = "cellHCalPositions",
                                              ecalReadoutName = ecalReadoutName,
                                              hcalReadoutName = "BarHCal_Readout",
-                                             neighboursRange = 4,
+                                             neighboursRange = 5,
                                              OutputLevel = INFO)
 createTopoClusters.clusters.Path = "caloClusters"
 createTopoClusters.clusterCells.Path = "caloClusterCells"
 
-out = PodioOutput("out", filename = "~/FCCSW/condor/output_reconstructionTopoClusters_"+str(particleType)+str(energy/GeV)+"GeV_bfield"+str(bfield)+"_part"+str(i)+".root",
+out = PodioOutput("out", filename = "~/FCCSW/condor/output_reconstructionTopoClusters_"+str(particleType)+str(energy/GeV)+"GeV_bfield"+str(bfield)+"_"+str(num_events)+"ev.root",
                   OutputLevel=DEBUG)
 out.outputCommands = ["keep *"]#,"drop ECalHits"]
 
@@ -198,10 +198,10 @@ chra = ChronoAuditor()
 audsvc = AuditorSvc()
 audsvc.Auditors = [chra]
 geantsim.AuditExecute = True
-createEcells.AuditExecute = True
+#createEcells.AuditExecute = True
 createHcells.AuditExecute = True
-positionsEcal.AuditExecute = True
-volPositionsHcal.AuditExecute = True
+#positionsEcal.AuditExecute = True
+#volPositionsHcal.AuditExecute = True
 positionsHcal.AuditExecute = True
 resegmentEcal.AuditExecute = True
 #resegmentHcal.AuditExecute = True

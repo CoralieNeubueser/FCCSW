@@ -7,7 +7,7 @@
 
 namespace det {
 void buildOneSide(MsgStream& lLog, DD4hep::Geometry::LCDD& aLcdd, DD4hep::Geometry::SensitiveDetector& aSensDet,
-                    DD4hep::Geometry::Volume& aEnvelope, DD4hep::XML::Handle_t& aXmlElement, int sign) {
+                  DD4hep::Geometry::Volume& aEnvelope, DD4hep::XML::Handle_t& aXmlElement, int sign) {
 
   DD4hep::XML::Dimension dim(aXmlElement.child(_Unicode(dimensions)));
 
@@ -54,6 +54,8 @@ void buildOneSide(MsgStream& lLog, DD4hep::Geometry::LCDD& aLcdd, DD4hep::Geomet
        << "\nThickness of absorber discs (cm) = " << passiveThickness
        << "\nThickness of readout disc placed in between absorber plates (cm) = " << readoutThickness
        << "\nNumber of absorber/readout discs: " << numDiscs
+       // + 1 to add the first active layer in between the first readout disc and the first absorber
+       << "\nNumber of active layers: " << numDiscs + 1
        << "\nMargin outside first readout disc and last absorber disc, filled with non-sensitive active medium (cm) = "
        << marginOutside << endmsg;
   lLog << MSG::INFO << "Detector length: (cm) " << length << endmsg;
@@ -145,7 +147,11 @@ void buildOneSide(MsgStream& lLog, DD4hep::Geometry::LCDD& aLcdd, DD4hep::Geomet
       passiveOuterPhysVolAbove.addPhysVolID("subtype", 2);
       passiveGluePhysVolBelow.addPhysVolID("subtype", 3);
       passiveGluePhysVolAbove.addPhysVolID("subtype", 4);
+<<<<<<< HEAD
     } else if (passive.isSensitive()){
+=======
+    } else if (passive.isSensitive()) {
+>>>>>>> d4c954812c7cde569583c96698e5f65c1617dd55
       lLog << MSG::INFO << "Passive volume set as sensitive" << endmsg;
       passiveVol.setSensitiveDetector(aSensDet);
     }
@@ -186,8 +192,8 @@ void buildOneSide(MsgStream& lLog, DD4hep::Geometry::LCDD& aLcdd, DD4hep::Geomet
 }
 
 static DD4hep::Geometry::Ref_t createCaloDiscs(DD4hep::Geometry::LCDD& aLcdd,
-                                                     DD4hep::XML::Handle_t aXmlElement,
-                                                     DD4hep::Geometry::SensitiveDetector aSensDet) {
+                                               DD4hep::XML::Handle_t aXmlElement,
+                                               DD4hep::Geometry::SensitiveDetector aSensDet) {
   ServiceHandle<IMessageSvc> msgSvc("MessageSvc", "CalDiscsConstruction");
   MsgStream lLog(&(*msgSvc), "CalDiscsConstruction");
 

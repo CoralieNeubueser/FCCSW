@@ -147,11 +147,7 @@ void buildOneSide(MsgStream& lLog, DD4hep::Geometry::LCDD& aLcdd, DD4hep::Geomet
       passiveOuterPhysVolAbove.addPhysVolID("subtype", 2);
       passiveGluePhysVolBelow.addPhysVolID("subtype", 3);
       passiveGluePhysVolAbove.addPhysVolID("subtype", 4);
-<<<<<<< HEAD
     } else if (passive.isSensitive()){
-=======
-    } else if (passive.isSensitive()) {
->>>>>>> d4c954812c7cde569583c96698e5f65c1617dd55
       lLog << MSG::INFO << "Passive volume set as sensitive" << endmsg;
       passiveVol.setSensitiveDetector(aSensDet);
     }

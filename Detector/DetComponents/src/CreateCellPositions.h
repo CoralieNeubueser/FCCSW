@@ -56,6 +56,8 @@ private:
   DD4hep::DDSegmentation::GridPhiEta* m_segmentation; 
   DD4hep::DDSegmentation::BitField64* m_decoder;
   double ecalBarrelLayerRadius[8]={193.0, 198.5, 207.5, 216.5, 225.5, 234.5, 243.5, 252.5};
+  int ecalEndcapNumberOfLayersMerged[40] = {2, 2, 4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4, 4};
+  int hcalEndcapNumberOfLayersMerged[21] = {2, 4,4,4,4,4,4,4,4,4,4 ,4,4,4,4,4,4,4,4,4, 4};
 
 };
 

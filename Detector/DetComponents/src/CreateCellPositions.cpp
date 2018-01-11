@@ -66,11 +66,13 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
 
   uint64_t cellid = 0;
   DD4hep::Geometry::VolumeManager volman = m_geoSvc->lcdd()->volumeManager();
-  int layer, cryo;
+  int layer, cryo, subsystem;
   double radius;  
   // Loop though hits, retrieve volume position from cellID
   for (const auto& cell : *hits) {
     cellid = cell.core().cellId;
+
+    // For ECAL Barrel
     if (m_readoutName == "ECalBarrelPhiEta"){
       m_decoder->setValue(cellid);
       layer = (*m_decoder)["layer"].value();
@@ -94,6 +96,7 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
 	      << outSeg.z() / dd4hep::mm << endmsg;
       continue;
     }
+
     const auto& transformMatrix = volman.worldTransformation(cellid);
     double outGlobal[3];
     double inLocal[] = {0, 0, 0};
@@ -108,12 +111,133 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
     radius = std::sqrt(std::pow(outGlobal[0], 2) + std::pow(outGlobal[1], 2));
     DD4hep::Geometry::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
     debug() << "Radius : " << radius << endmsg;
-    // in case of calo discs
-    if (radius == 0 && outGlobal[2] != 0){
+    
+    // in case of Fwd discs
+    if (m_readoutName == "EMFwdPhiEta" || m_readoutName == "HFwdPhiEta"){ //radius == 0 && outGlobal[2] != 0){
       debug() << "x and y positons of the volume is 0, cell positions are created for calo discs!" << endmsg;
+      debug() << "z position of volume : " << outGlobal[2] << endmsg;
+      debug() << "cell id fields       : " << m_decoder->valueString() << endmsg;
+      debug() << "active volume id     : " << volman.lookupPlacement(cellid).toString() << endmsg;
+      debug() << "det element          : " << volman.lookupDetElement(cellid).placement().toString() << endmsg;
+      debug() << "det element id       : " << volman.lookupDetElement(cellid).volumeID() << endmsg;
+      debug() << "det element placem.  : " << volman.lookupDetElement(cellid).placementPath() << endmsg;
+
+      subsystem = (*m_decoder)["subsystem"].value();
       double eta = m_segmentation->eta(cellid);
+      // if (subsystem == 1) {
+      // 	(*m_decoder)["subsystem"] = 0;
+      // 	auto newCellId = m_decoder->getValue();
+      // 	const auto& newTransform = volman.worldTransformation(newCellId);
+      // 	double outG[3];
+      // 	newTransform.LocalToMaster(inLocal, outG);
+      // 	radius = outG[2]/std::sinh(eta);
+      // 	outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, -outG[2] );
+      // }
+      // else{
       radius = outGlobal[2]/std::sinh(eta);
       outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, outGlobal[2] );
+	//     }
+    }
+    // in case of Tail Catcher
+    else if (m_readoutName == "Muons_Readout"){ //radius == 0 && outGlobal[2] != 0){
+      debug() << "x and y positons of the volume is 0, cell positions are created for tail catcher!" << endmsg;
+      double eta = m_segmentation->eta(cellid);
+      if (outGlobal[2]==0){ // central tail catcher
+	radius = 901.5; //cm
+	outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius,  inSeg.z() * radius);
+      }
+      else {
+	radius = outGlobal[2]/std::sinh(eta);
+	outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, outGlobal[2] );
+      }
+    }    
+    // in case of Encap discs
+    else if (m_readoutName == "EMECPhiEta"){
+      double eta = m_segmentation->eta(cellid);
+      radius = outGlobal[2]/std::sinh(eta);
+      m_decoder->setValue(cellid);
+      layer = (*m_decoder)["layer"].value();
+      debug() << "new layer : " << layer << endmsg;
+      int oldLayersMin=0;
+      for(int iLayer=0; iLayer<layer; iLayer++){
+	oldLayersMin += ecalEndcapNumberOfLayersMerged[iLayer];
+      }
+      double oldLayersMax = oldLayersMin + ecalEndcapNumberOfLayersMerged[layer] -1;
+      (*m_decoder)["layer"] = oldLayersMin;
+      auto minCellId = m_decoder->getValue();
+      (*m_decoder)["layer"] = oldLayersMax;
+      auto maxCellId = m_decoder->getValue();
+      debug() << "old min layer : " << oldLayersMin << endmsg;
+      debug() << "old max layer : " << oldLayersMax << endmsg;
+      
+      const auto& transformMatrixMin = volman.worldTransformation(minCellId);
+      const auto& transformMatrixMax = volman.worldTransformation(maxCellId);
+      double outGlobalMin[3];
+      double outGlobalMax[3];
+      double inLocal[] = {0, 0, 0};
+      transformMatrixMin.LocalToMaster(inLocal, outGlobalMin);
+      transformMatrixMax.LocalToMaster(inLocal, outGlobalMax);
+      double meanLayerPositionZ = (outGlobalMin[2]+outGlobalMax[2])/2.;
+      subsystem = (*m_decoder)["subsystem"].value();
+      if (subsystem == 1)
+	meanLayerPositionZ = -meanLayerPositionZ;
+      // global cartesian coordinates calculated from r,phi,eta, for r=1
+      auto inSeg = m_segmentation->position(cellid);
+      DD4hep::Geometry::Position outPos(inSeg.x() * radius, inSeg.y() * radius, meanLayerPositionZ);
+      auto edmPos = fcc::Point();
+      edmPos.x = outPos.x() / dd4hep::mm;
+      edmPos.y = outPos.y() / dd4hep::mm;
+      edmPos.z = outPos.z() / dd4hep::mm;
+	
+      auto positionedHit = edmPositionedHitCollection->create(edmPos, cell.core());
+    
+      // Debug information about cell position
+      debug() << "Cell energy (GeV) : " << cell.core().energy << "\tcellID " << cellid << endmsg;
+      debug() << "Position of cell (mm) : \t" << outPos.x() / dd4hep::mm << "\t" << outPos.y() / dd4hep::mm << "\t"
+	      << outPos.z() / dd4hep::mm << endmsg;
+      continue;
+    }
+    else if (m_readoutName == "HECPhiEta"){
+      double eta = m_segmentation->eta(cellid);
+      radius = outGlobal[2]/std::sinh(eta);
+      m_decoder->setValue(cellid);
+      layer = (*m_decoder)["layer"].value();
+      int oldLayersMin=0;
+      for(int iLayer=0; iLayer<layer; iLayer++){
+	oldLayersMin += hcalEndcapNumberOfLayersMerged[iLayer];
+      }
+      double oldLayersMax = oldLayersMin + hcalEndcapNumberOfLayersMerged[layer] -1;
+      (*m_decoder)["layer"] = oldLayersMin;
+      auto minCellId = m_decoder->getValue();
+      (*m_decoder)["layer"] = oldLayersMax;
+      auto maxCellId = m_decoder->getValue();
+      
+      const auto& transformMatrixMin = volman.worldTransformation(minCellId);
+      const auto& transformMatrixMax = volman.worldTransformation(maxCellId);
+      double outGlobalMin[3];
+      double outGlobalMax[3];
+      double inLocal[] = {0, 0, 0};
+      transformMatrixMin.LocalToMaster(inLocal, outGlobalMin);
+      transformMatrixMax.LocalToMaster(inLocal, outGlobalMax);
+      double meanLayerPositionZ = (outGlobalMin[2]+outGlobalMax[2])/2.;
+      subsystem = (*m_decoder)["subsystem"].value();
+      if (subsystem == 1)
+	meanLayerPositionZ = -meanLayerPositionZ;
+      // global cartesian coordinates calculated from r,phi,eta, for r=1
+      auto inSeg = m_segmentation->position(cellid);
+      DD4hep::Geometry::Position outPos(inSeg.x() * radius, inSeg.y() * radius, meanLayerPositionZ);
+      auto edmPos = fcc::Point();
+      edmPos.x = outPos.x() / dd4hep::mm;
+      edmPos.y = outPos.y() / dd4hep::mm;
+      edmPos.z = outPos.z() / dd4hep::mm;
+	
+      auto positionedHit = edmPositionedHitCollection->create(edmPos, cell.core());
+    
+      // Debug information about cell position
+      debug() << "Cell energy (GeV) : " << cell.core().energy << "\tcellID " << cellid << endmsg;
+      debug() << "Position of cell (mm) : \t" << outPos.x() / dd4hep::mm << "\t" << outPos.y() / dd4hep::mm << "\t"
+	      << outPos.z() / dd4hep::mm << endmsg;
+      continue;
     }
     // in case that no eta segmentation is used (case of TileCal B and EB), 
     // original volume position is used in z from placed detector element
@@ -126,6 +250,7 @@ StatusCode CreateCellPositions<Hits, PositionedHit>::execute() {
       debug() << "grid size in eta > 10, no eta segmentaion used! Cell position.z is volumes position.z" << endmsg;
       outSeg.SetCoordinates( inSeg.x() * radius, inSeg.y() * radius, global[2] );
     }
+ 
     auto edmPos = fcc::Point();
     edmPos.x = outSeg.x() / dd4hep::mm;
     edmPos.y = outSeg.y() / dd4hep::mm;

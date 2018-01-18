@@ -1,7 +1,7 @@
 #ifndef RECCALORIMETER_COMBINEDCALOTOPOCLUSTER_H
 #define RECCALORIMETER_COMBINEDCALOTOPOCLUSTER_H
 
-// from Gaudi
+// Gaudi
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "GaudiKernel/ToolHandle.h"
 
@@ -9,14 +9,15 @@
 #include "FWCore/DataHandle.h"
 #include "DetSegmentation/GridPhiEta.h"
 #include "RecInterface/ICalorimeterTool.h"
+#include "RecInterface/IReadNoiseFileTool.h"
+#include "RecInterface/ICellPositionsTool.h"
 
 class IGeoSvc;
 
 // datamodel
 namespace fcc {
+  class CaloHit;
   class CaloHitCollection;
-  class PositionedCaloHit;
-  class PositionedCaloHitCollection;
   class CaloClusterCollection;
 }
 
@@ -42,23 +43,51 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
    *   For simulation without electronic and pile-up noise, the average noise levels are taken as reference for seeding (1.5 and 3.5MeV/cell for E and HCAL, electronic noise only), (2.5 and 100MeV/cell for E and HCAL, added pile-up).
    *   @return list of seed cells to build proto-clusters.
    */ 
-  virtual void findingSeeds(const fcc::PositionedCaloHitCollection* cells, double threshold, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells);
+  virtual void findingSeedsWNoise(const fcc::CaloHitCollection* cells, 
+			    double threshold, 
+			    std::vector<fcc::CaloHit>& seeds, 
+			    std::map<uint64_t,fcc::CaloHit>& allCells, 
+			    IReadNoiseFileTool& aNoiseTool);
+  virtual void findingSeeds(const fcc::CaloHitCollection* cells, 
+			    double threshold, 
+			    std::vector<fcc::CaloHit>& seeds, 
+			    std::map<uint64_t,fcc::CaloHit>& allCells);
   /** Build proto-clusters
   */
-  virtual void buildingProtoCluster(double neighbourThr, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::vector<fcc::PositionedCaloHit>& seeds, std::map<uint64_t,fcc::PositionedCaloHit>& allCells, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection);
-  /** Search for neighbours and add them to lists
+  virtual void buildingProtoClusterWNoise(double neighbourThr, 
+				    const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, 
+				    std::vector<fcc::CaloHit>& seeds, std::map<uint64_t,fcc::CaloHit>& allCells, 
+				    std::map<uint,std::vector<fcc::CaloHit> >& preClusterCollection,
+				    IReadNoiseFileTool& aNoiseTool); 
+   virtual void buildingProtoCluster(double neighbourThr, 
+				    const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, 
+				    std::vector<fcc::CaloHit>& seeds, std::map<uint64_t,fcc::CaloHit>& allCells, 
+				    std::map<uint,std::vector<fcc::CaloHit> >& preClusterCollection); 
+ /** Search for neighbours and add them to lists
    */
-  std::vector<uint64_t> searchForNeighbours(const uint64_t id, uint& clusterNum, const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, std::map<uint64_t, fcc::PositionedCaloHit>& allCells, std::map<uint64_t, uint>& clusterOfCell, std::map<uint,std::vector<fcc::PositionedCaloHit> >& preClusterCollection); 
-  
+  std::vector<uint64_t> searchForNeighboursWNoise(const uint64_t id, 
+					    uint& clusterNum, 
+					    const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, 
+					    double threshold, std::map<uint64_t, fcc::CaloHit>& allCells, 
+					    std::map<uint64_t, uint>& clusterOfCell, 
+					    std::map<uint,std::vector<fcc::CaloHit> >& preClusterCollection,
+					    IReadNoiseFileTool& aNoiseTool); 
+  std::vector<uint64_t> searchForNeighbours(const uint64_t id, 
+					    uint& clusterNum, 
+					    const std::unordered_map<uint64_t, std::vector<uint64_t> > neighboursMap, 
+					    double threshold, std::map<uint64_t, fcc::CaloHit>& allCells, 
+					    std::map<uint64_t, uint>& clusterOfCell, 
+					    std::map<uint,std::vector<fcc::CaloHit> >& preClusterCollection); 
+
   StatusCode execute();
 
   StatusCode finalize();
 
  private:
   /// Handle for electromagnetic calorimeter cells (input collection)
-  DataHandle<fcc::PositionedCaloHitCollection> m_ecalCells{"ecalCells", Gaudi::DataHandle::Reader, this};
+  DataHandle<fcc::CaloHitCollection> m_ECalCells{"ECalCells", Gaudi::DataHandle::Reader, this};
   /// Handle for hadronic calorimeter cells (input collection)
-  DataHandle<fcc::PositionedCaloHitCollection> m_hcalCells{"hcalCells", Gaudi::DataHandle::Reader, this};
+  DataHandle<fcc::CaloHitCollection> m_HCalCells{"HCalCells", Gaudi::DataHandle::Reader, this};
   // Pre-cluster collection
   DataHandle<fcc::CaloClusterCollection> m_clusterCollection{"calo/clusters", Gaudi::DataHandle::Writer, this};
   // Pre-cluster cells collection
@@ -66,46 +95,59 @@ class CombinedCaloTopoCluster : public GaudiAlgorithm {
   /// Pointer to the geometry service
   SmartIF<IGeoSvc> m_geoSvc;
   /// Name of the electromagnetic calorimeter readout
-  Gaudi::Property<std::string> m_ecalReadoutName{this, "ecalReadoutName", "name of the ecal readout"};
-  /// Name of thehadronic calorimeter readout
-  Gaudi::Property<std::string> m_hcalReadoutName{this, "hcalReadoutName", "name of the hcal readout"};
+  Gaudi::Property<std::string> m_ECalReadoutName{this, "ECalReadoutName", "name of the ECal readout"};
+  /// Name of the hadronic calorimeter readout
+  Gaudi::Property<std::string> m_HCalReadoutName{this, "HCalReadoutName", "name of the HCal readout"};
+  /// Handle for the ECal cells noise tool
+  ToolHandle<IReadNoiseFileTool> m_noiseToolECal{"ReadNoiseFromFileTool", this};
+  /// Handle for the HCal cells noise tool
+  ToolHandle<IReadNoiseFileTool> m_noiseToolHCal{"ReadNoiseFromFileTool", this};
+  /// Noise added to electromagnetic calorimeter
+  Gaudi::Property<bool> m_noiseECal{this, "noiseAddedECal", false, "noise has been added, thresholds adjusted"};
+  /// Noise added to hadronic calorimeter
+  Gaudi::Property<bool> m_noiseHCal{this, "noiseAddedHCal", false, "noise has been added, thresholds adjusted"};
+  /// Handle for tool to get positions
+  ToolHandle<ICellPositionsTool> m_cellPositionsToolECal{"CellPositionsECalBarrelTool", this};
+  /// Handle for tool to get positions
+  ToolHandle<ICellPositionsTool> m_cellPositionsToolHCal{"CellPositionsHCalBarrelTool", this};
 
   /// PhiEta segmentation of the electromagnetic detector (owned by DD4hep)
-  DD4hep::DDSegmentation::GridPhiEta* m_ecalSegmentation;
+  DD4hep::DDSegmentation::GridPhiEta* m_ECalSegmentation;
   /// PhiEta segmentation of the hadronic detector (owned by DD4hep)
-  DD4hep::DDSegmentation::GridPhiEta* m_hcalSegmentation;
+  DD4hep::DDSegmentation::GridPhiEta* m_HCalSegmentation;
   // Range for neighbours to be found
   int m_range;
 
-  // Map of all cells 
-  std::unordered_map<uint64_t, double> m_ecalDetCells;
-  std::unordered_map<uint64_t, double> m_hcalDetCells;
   /// all active Cells
-  std::map<uint64_t, fcc::PositionedCaloHit> m_allCellsEcal;
-  std::map<uint64_t, fcc::PositionedCaloHit> m_allCellsHcal;
+  std::map<uint64_t, fcc::CaloHit> m_allCellsECal;
+  std::map<uint64_t, fcc::CaloHit> m_allCellsHCal;
 
   /// First list of CaloCells above seeding threshold 
-  std::vector<fcc::PositionedCaloHit> firstSeedsEcal;
-  std::vector<fcc::PositionedCaloHit> firstSeedsHcal;
+  std::vector<fcc::CaloHit> firstSeedsECal;
+  std::vector<fcc::CaloHit> firstSeedsHCal;
 
-  /// Seed threshold Ecal
-  Gaudi::Property<double> m_seedThr_ecal{this, "seedThresholdEcal", 7.5, "seed threshold estimate [MeV]"};
-  /// Seed threshold hcal
-  Gaudi::Property<double> m_seedThr_hcal{this, "seedThresholdHcal", 11.5, "seed threshold estimate [MeV]"};
-  /// Seed threshold Ecal
-  Gaudi::Property<double> m_neighbourThr_ecal{this, "neighbourThresholdEcal", 0., "neighbour threshold estimate [MeV]"};//3
-  /// Seed threshold hcal
-  Gaudi::Property<double> m_neighbourThr_hcal{this, "neighbourThresholdHcal", 0., "neighbour threshold estimate [MeV]"};//3.5
+  /// THRESHOLD FOR RECO WITHOUT NOISE
+  /// Seed threshold ECal
+  Gaudi::Property<double> m_seedThr_ECal{this, "seedThresholdECal", (7.5/4.), "seed threshold estimate [MeV]"};
+  /// Seed threshold HCal
+  Gaudi::Property<double> m_seedThr_HCal{this, "seedThresholdHCal", (11.5/4.), "seed threshold estimate [MeV]"};
+  /// Seed threshold ECal
+  Gaudi::Property<double> m_neighbourThr_ECal{this, "neighbourThresholdECal", (3./2.), "neighbour threshold estimate [MeV]"};
+  /// Seed threshold HCal
+  Gaudi::Property<double> m_neighbourThr_HCal{this, "neighbourThresholdHCal", (3.5/2.), "neighbour threshold estimate [MeV]"};
 
-  /// Name of the bit-fields searching for neighbours in ECAL                      
-  const std::vector<std::string> m_fieldNamesEcal{"layer","phi","eta"};
-  /// Name of the bit-fields searching for neighbours in HCAL                      
-  const std::vector<std::string> m_fieldNamesHcal{"row","layer","phi"};
+  /// Name of the bit-fields searching for neighbours in ECal                      
+  Gaudi::Property<std::vector<std::string> > m_fieldNamesECal{this, "fieldsForNeighboursECal", {"layer","phi","eta"}, "dimensions to look for neighbours in ECal"};
+  /// Name of the bit-fields searching for neighbours in HCal                      
+  Gaudi::Property<std::vector<std::string> > m_fieldNamesHCal{this, "fieldsForNeighboursHCal", {"layer","phi","row"}, "dimensions to look for neighbours in HCal"};
+  /// Seed threshold ECal
+  Gaudi::Property<int> m_lastECalLayer{this, "lastECalLayer", 7, "last layer in the ECal"};
 
-  std::vector<std::pair<int, int>> m_fieldExtremesEcal;
-  std::vector<std::pair<int, int>> m_fieldExtremesHcal;
-  DD4hep::DDSegmentation::BitField64* m_decoderEcal;
-  DD4hep::DDSegmentation::BitField64* m_decoderHcal;
+  std::vector<std::pair<int, int>> m_fieldExtremesECal;
+  std::vector<std::pair<int, int>> m_fieldExtremesHCal;
+
+  std::shared_ptr<DD4hep::DDSegmentation::BitField64> m_decoderECal;
+  std::shared_ptr<DD4hep::DDSegmentation::BitField64> m_decoderHCal;
 
 };
 

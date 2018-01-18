@@ -75,4 +75,19 @@ void CellPositionsECalBarrelTool::getPositions(const fcc::CaloHitCollection& aCe
   debug() << "Output positions collection size: " << outputColl.size() << endmsg;
 }
 
+DD4hep::Geometry::Position CellPositionsECalBarrelTool::getXYZPosition(const fcc::CaloHit& aCell) const {
+  int layer;
+  double radius;
+  auto cellid = aCell.core().cellId;
+  m_decoder->setValue(cellid);
+  layer = (*m_decoder)["layer"].value();
+  radius = m_layerRadius[layer];
+  // global cartesian coordinates calculated only from segmentation
+  // from r,phi,eta, for r=1
+  auto inSeg = m_segmentation->position(cellid);
+  DD4hep::Geometry::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
+ 
+  return outSeg;
+}
+
 StatusCode CellPositionsECalBarrelTool::finalize() { return GaudiTool::finalize(); }

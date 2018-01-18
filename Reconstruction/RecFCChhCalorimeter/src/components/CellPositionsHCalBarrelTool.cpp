@@ -75,4 +75,23 @@ void CellPositionsHCalBarrelTool::getPositions(const fcc::CaloHitCollection& aCe
   debug() << "Output positions collection size: " << outputColl.size() << endmsg;
 }
 
+DD4hep::Geometry::Position CellPositionsHCalBarrelTool::getXYZPosition(const fcc::CaloHit& aCell) const {
+  double radius;
+  DD4hep::Geometry::VolumeManager volman = m_geoSvc->lcdd()->volumeManager();
+  
+  auto cellid = aCell.core().cellId;
+  // global cartesian coordinates calculated from r,phi,eta, for r=1
+  auto inSeg = m_segmentation->position(cellid);
+  auto detelement = volman.lookupDetElement(cellid);
+  const auto& transform = detelement.worldTransformation();
+  double global[3];
+  double local[3] = {0, 0, 0};
+  transform.LocalToMaster(local, global);
+  radius = std::sqrt(std::pow(global[0], 2) + std::pow(global[1], 2));
+  debug() << "no eta segmentaion used! Cell position.z is volumes position.z" << endmsg;
+  DD4hep::Geometry::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, global[2]);
+  
+  return outSeg;  
+}
+
 StatusCode CellPositionsHCalBarrelTool::finalize() { return GaudiTool::finalize(); }

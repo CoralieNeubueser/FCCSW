@@ -6,6 +6,7 @@
 #include "RecInterface/ICalorimeterTool.h"
 #include "RecInterface/ITowerTool.h"
 #include "DetSegmentation/FCCSWGridPhiEta.h"
+#include "RecInterface/ICellPositionsTool.h"
 class IGeoSvc;
 
 // Gaudi
@@ -63,7 +64,9 @@ private:
   /// Handle for geometry tool (used to prepare map of all existing cellIDs for the system)
   ToolHandle<ICalorimeterTool> m_geoTool{"TubeLayerPhiEtaCaloTool", this};
   /// Handle for the tower building tool
-  ToolHandle<ITowerTool> m_towerTool;
+  ToolHandle<ITowerTool> m_towerTool{this,"towerTool", "LayeredCaloTowerTool"};
+  /// Handle for tool to get positions in ECal Barrel
+  ToolHandle<ICellPositionsTool> m_cellPositionsTool{this, "positionsTool", "CellPositionsHCalBarrelNoSegTool"};
   // calorimeter towers
   std::vector<std::vector<float>> m_towers;
   /// number of towers in eta (calculated from m_deltaEtaTower and the eta size of the first layer)
@@ -92,6 +95,8 @@ private:
   /// 2D histogram with abs(eta) on x-axis and energy per cluster(s) per file on y-axis
   std::vector<TH2F*> m_energyAllEventsVsAbsEtaClusters;
 
+  /// Maximum energy in the m_energyVsAbsEta histogram, in GeV 
+  Gaudi::Property<bool> m_doClusters{this, "doClusters", false, "Cluster in certain layers"};
   /// Maximum energy in the m_energyVsAbsEta histogram, in GeV 
   Gaudi::Property<uint> m_maxEnergy{this, "maxEnergy", 20., "Maximum energy in the pile-up plot"};
   /// Name of the pileup histograms

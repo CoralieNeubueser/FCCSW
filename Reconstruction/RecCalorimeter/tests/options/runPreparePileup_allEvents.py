@@ -67,7 +67,7 @@ rewriteHcal = RewriteHCalBarrelBitfield("RewriteHCalBitfield",
                                         OutputLevel = INFO)
 # clusters are needed, with deposit position and cellID in bits                                                                                                                                                                           
 rewriteHcal.inhits.Path = "HCalBarrelCells"
-rewriteHcal.outhits.Path = "HCalBarrelCellsVol"
+rewriteHcal.outhits.Path = "newHCalBarrelCells"
 
 # geometry tool
 from Configurables import TubeLayerPhiEtaCaloTool
@@ -83,7 +83,7 @@ from Configurables import NestedVolumesCaloTool
 hcalBarrelGeometry = NestedVolumesCaloTool("HcalBarrelGeo",
                                            activeVolumeName = hcalVolumeName,
                                            activeFieldName = hcalIdentifierName,
-                                           readoutName = hcalBarrelReadoutNamePhiEta,
+                                           readoutName = hcalBarrelReadoutVolume,
                                            fieldNames = hcalFieldNames,
                                            fieldValues = hcalFieldValues,
                                            OutputLevel = INFO)
@@ -172,61 +172,61 @@ towersHCalLayer1 = LayeredCaloTowerTool("towersHCalLayer1",
                                         minimumLayer =0,
                                         maximumLayer =0,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer1.cells.Path = "newHCalBarrelCells"
+towersHCalLayer1.cells.Path = "HCalBarrelCells"
 towersHCalLayer2 = LayeredCaloTowerTool("towersHCalLayer2",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =1,
                                         maximumLayer =1,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer2.cells.Path = "newHCalBarrelCells"
+towersHCalLayer2.cells.Path = "HCalBarrelCells"
 towersHCalLayer3 = LayeredCaloTowerTool("towersHCalLayer3",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =2,
                                         maximumLayer =2,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer3.cells.Path = "newHCalBarrelCells"
+towersHCalLayer3.cells.Path = "HCalBarrelCells"
 towersHCalLayer4 = LayeredCaloTowerTool("towersHCalLayer4",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =3,
                                         maximumLayer =3,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer4.cells.Path = "newHCalBarrelCells"
+towersHCalLayer4.cells.Path = "HCalBarrelCells"
 towersHCalLayer5 = LayeredCaloTowerTool("towersHCalLayer5",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =4,
                                         maximumLayer =4,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer5.cells.Path = "newHCalBarrelCells"
+towersHCalLayer5.cells.Path = "HCalBarrelCells"
 towersHCalLayer6 = LayeredCaloTowerTool("towersHCalLayer6",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =5,
                                         maximumLayer =5,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer6.cells.Path = "newHCalBarrelCells"
+towersHCalLayer6.cells.Path = "HCalBarrelCells"
 towersHCalLayer7 = LayeredCaloTowerTool("towersHCalLayer7",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =6,
                                         maximumLayer =6,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer7.cells.Path = "newHCalBarrelCells"
+towersHCalLayer7.cells.Path = "HCalBarrelCells"
 towersHCalLayer8 = LayeredCaloTowerTool("towersHCalLayer8",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =7,
                                         maximumLayer =7,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer8.cells.Path = "newHCalBarrelCells"
+towersHCalLayer8.cells.Path = "HCalBarrelCells"
 towersHCalLayer9 = LayeredCaloTowerTool("towersHCalLayer9",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =8,
                                         maximumLayer =8,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer9.cells.Path = "newHCalBarrelCells"
+towersHCalLayer9.cells.Path = "HCalBarrelCells"
 towersHCalLayer10 = LayeredCaloTowerTool("towersHCalLayer10",
                                         deltaEtaTower = 0.025, deltaPhiTower = 2*pi/256.,
                                         minimumLayer =9,
                                         maximumLayer =9,
                                         readoutName = hcalBarrelReadoutNamePhiEta)
-towersHCalLayer10.cells.Path = "newHCalBarrelCells"
+towersHCalLayer10.cells.Path = "HCalBarrelCells"
 
 # call pileup tool
 # prepare TH2 histogram with pileup per abs(eta)
@@ -237,10 +237,11 @@ pileupEcalBarrelLayer0 = PreparePileup("PreparePileupEcalLayer0",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer0EnergyVsAbsEta",
+                                       doClusters = True,
                                        etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
-                                       OutputLevel = DEBUG)
+                                       OutputLevel = INFO)
 pileupEcalBarrelLayer0.hits.Path="ECalBarrelCells"
 pileupEcalBarrelLayer1 = PreparePileup("PreparePileupEcalLayer1",
                                        geometryTool = ecalBarrelGeometry,
@@ -248,7 +249,8 @@ pileupEcalBarrelLayer1 = PreparePileup("PreparePileupEcalLayer1",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer1EnergyVsAbsEta",
-                                       etaSize = [1],
+                                        doClusters = True,
+                                      etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
                                        OutputLevel = DEBUG)
@@ -270,7 +272,8 @@ pileupEcalBarrelLayer3 = PreparePileup("PreparePileupEcalLayer3",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer3EnergyVsAbsEta",
-                                       etaSize = [1],
+                                        doClusters = True,
+                                      etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
                                        OutputLevel = DEBUG)
@@ -281,7 +284,8 @@ pileupEcalBarrelLayer4 = PreparePileup("PreparePileupEcalLayer4",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer4EnergyVsAbsEta",
-                                       etaSize = [1],
+                                        doClusters = True,
+                                      etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
                                        OutputLevel = DEBUG)
@@ -292,6 +296,7 @@ pileupEcalBarrelLayer5 = PreparePileup("PreparePileupEcalLayer5",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer5EnergyVsAbsEta",
+                                       doClusters = True,
                                        etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
@@ -303,6 +308,7 @@ pileupEcalBarrelLayer6 = PreparePileup("PreparePileupEcalLayer6",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer6EnergyVsAbsEta",
+                                       doClusters = True,
                                        etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
@@ -314,17 +320,20 @@ pileupEcalBarrelLayer7 = PreparePileup("PreparePileupEcalLayer7",
                                        readoutName = ecalBarrelReadoutNamePhiEta,
                                        layerFieldName = "layer",
                                        histogramName = "ecalLayer7EnergyVsAbsEta",
+                                       doClusters = True,
                                        etaSize = [1],
                                        phiSize = [1],
                                        numLayers = 8,
-                                       OutputLevel = DEBUG)
+                                       OutputLevel = INFO)
 pileupEcalBarrelLayer7.hits.Path="ECalBarrelCells"
 
 pileupHcalBarrel = PreparePileup("PreparePileupHcalBarrel",
                                  geometryTool = hcalBarrelGeometry,
                                  readoutName = hcalBarrelReadoutVolume,
+                                 positionsTool = HCalBcellVols,
                                  layerFieldName = "layer",
                                  histogramName ="hcalBarrelEnergyVsAbsEta",
+                                 doClusters = False,
                                  numLayers = 10,
                                  OutputLevel = DEBUG)
 pileupHcalBarrel.hits.Path="newHCalBarrelCells"
@@ -350,18 +359,18 @@ podioinput.AuditExecute = True
 
 ApplicationMgr(
     TopAlg = [podioinput,
-#              rewriteHcal,
-#              positionsHcal,
-#              resegmentHcal,
+              rewriteHcal,
+ #            positionsHcal,
+   #           resegmentHcal,
               pileupEcalBarrelLayer0,
-              pileupEcalBarrelLayer1,
-              pileupEcalBarrelLayer2,
-              pileupEcalBarrelLayer3,
-              pileupEcalBarrelLayer4,
-              pileupEcalBarrelLayer5,
-              pileupEcalBarrelLayer6,
-              pileupEcalBarrelLayer7,
-#              pileupHcalBarrel,
+#              pileupEcalBarrelLayer1,
+#              pileupEcalBarrelLayer2,
+#              pileupEcalBarrelLayer3,
+#              pileupEcalBarrelLayer4,
+#              pileupEcalBarrelLayer5,
+#              pileupEcalBarrelLayer6,
+#              pileupEcalBarrelLayer7,
+              pileupHcalBarrel,
               ],
     EvtSel = 'NONE',
     EvtMax = 10,

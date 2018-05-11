@@ -71,6 +71,11 @@ StatusCode CreateCaloClusters::initialize() {
     error() << "Couldn't register hist" << endmsg;
     return StatusCode::FAILURE;
   } 
+  m_sharedClusterEnergy = new TH1F("sharedClusterEnergy", "energy in shared clusters per event",  10000, 0, 10000 );
+  if (m_histSvc->regHist("/rec/sharedClusterEnergy", m_sharedClusterEnergy).isFailure()) {
+    error() << "Couldn't register hist of energy in shared clusters per event" << endmsg;
+    return StatusCode::FAILURE;
+  } 
   m_clusterEnergyCalibrated = new TH1F("clusterEnergyCalibrated", "energy of calibrated cluster",  10000, 0, 10000 );
   if (m_histSvc->regHist("/rec/clusterEnergyCalibrated", m_clusterEnergyCalibrated).isFailure()) {
     error() << "Couldn't register hist" << endmsg;
@@ -151,12 +156,12 @@ StatusCode CreateCaloClusters::execute() {
 	int layerId;
 	if (systemId == m_systemIdECal){
 	  layerId = (*m_decoderECal)["layer"].value();
-	  if( layerId == m_lastECalLayer) 
+	  if( layerId == m_lastECalLayer ) 
 	    energyLastECal += cellEnergy;
 	}
 	else{
 	  layerId = (*m_decoderHCal)["layer"].value();
-	  if ( layerId == m_firstHCalLayer)
+	  if ( layerId == m_firstHCalLayer )
 	    energyFirstHCal += cellEnergy;
 	}
 	energyBoth[systemId] += cellEnergy;
@@ -175,6 +180,7 @@ StatusCode CreateCaloClusters::execute() {
       // 2. Calibrate the cluster if it contains cells in both systems
       if(cellsInBoth) {
 	sharedClusters ++;
+	m_sharedClusterEnergy->Fill(cluster.core().energy);
 	// Calculate the fraction of energy in ECal
 	auto energyFraction = energyBoth[m_systemIdECal] / cluster.core().energy;
 	debug() << "Energy fraction in ECal : " << energyFraction << endmsg;
@@ -244,6 +250,7 @@ StatusCode CreateCaloClusters::execute() {
 	  posX += posCell.X() * cellEnergy;
 	  posY += posCell.Y() * cellEnergy;
 	  posZ += posCell.Z() * cellEnergy;
+
 	  newCluster.addhits(newCell);
 	  edmClusterCells->push_back(newCell);
 	  energy += cellEnergy;
@@ -252,9 +259,14 @@ StatusCode CreateCaloClusters::execute() {
 	m_clusterEnergyCalibrated->Fill(energy);
 	totCalibClusterEnergy += energy;
 
+	newCluster.core().position.x = posX / energy;
+	newCluster.core().position.y = posY / energy;
+	newCluster.core().position.z = posZ / energy;
+
 	// Correct for lost energy in cryostat
 	if ( m_doCryoCorrection ){
 	  double corr = m_b*sqrt(fabs(energyLastECal*m_a*energyFirstHCal));
+	  debug() << "Added energy to cluster  : " << corr << "GeV " << endmsg;
 	  energy += corr;
 	  
 	  // Fill histogram with corrected energy
@@ -263,9 +275,6 @@ StatusCode CreateCaloClusters::execute() {
 	}
 
 	newCluster.core().energy = energy;
-	newCluster.core().position.x = posX / energy;
-	newCluster.core().position.y = posY / energy;
-	newCluster.core().position.z = posZ / energy;
 	edmClusters->push_back(newCluster);
       }
       else { // Fill the unchanged cluster in output collection

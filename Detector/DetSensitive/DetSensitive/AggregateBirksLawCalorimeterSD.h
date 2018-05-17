@@ -1,5 +1,5 @@
-#ifndef DETSENSITIVE_BIRKSLAWCALORIMETERSD_H
-#define DETSENSITIVE_BIRKSLAWCALORIMETERSD_H
+#ifndef DETSENSITIVE_AGGREGATECALORIMETERSD_H
+#define DETSENSITIVE_AGGREGATECALORIMETERSD_H
 
 // DD4hep
 #include "DDG4/Geant4Hits.h"
@@ -9,13 +9,13 @@
 #include "G4THitsCollection.hh"
 #include "G4VSensitiveDetector.hh"
 
-/** BirksLawCalorimeterSD DetectorDescription/DetSensitive/src/BirksLawCalorimeterSD.h BirksLawCalorimeterSD.h
+/** AggregateBirksLawCalorimeterSD DetectorDescription/DetSensitive/src/AggregateBirksLawCalorimeterSD.h AggregateBirksLawCalorimeterSD.h
  *
- *  Sensitive detector for calorimeters, using Polystyrene.
+ *  Sensitive detector for calorimeter (aggregates energy deposits within each cell).
  *  It is based on dd4hep::sim::Geant4GenericSD<Calorimeter> (but it is not identical).
  *  In particular, the position of the hit is set to G4Step::GetPreStepPoint() position.
- *  New hit is created for each energy deposit.
- *  No timing information is saved.
+ *  No timing information is saved (energy deposits are aggregated in the cells)
+ *
  *  Birks law reduces the energy deposited in the scintillator, following:
  *
  *  Note : the material is assumed ideal, which means that impurities and aging effects are not taken into account
@@ -24,22 +24,23 @@
  *  values from NIM 80 (1970) 239-244
  *  RKB = 0.013  g/(MeV*cm**2)  and  C = 9.6e-6  g**2/((MeV**2)(cm**4))
  *
+ *  @author    Anna Zaborowska
  *  @author    Coralie Neubueser
  */
 
 namespace det {
-class BirksLawCalorimeterSD : public G4VSensitiveDetector {
+class AggregateBirksLawCalorimeterSD : public G4VSensitiveDetector {
 public:
   /** Constructor.
    *  @param aDetectorName Name of the detector
    *  @param aReadoutName Name of the readout (used to name the collection)
    *  @param aSeg Segmentation of the detector (used to retrieve the cell ID)
    */
-  BirksLawCalorimeterSD(const std::string& aDetectorName,
-                        const std::string& aReadoutName,
-                        const dd4hep::Segmentation& aSeg);
+  AggregateBirksLawCalorimeterSD(const std::string& aDetectorName,
+                         const std::string& aReadoutName,
+                         const dd4hep::Segmentation& aSeg);
   /// Destructor
-  virtual ~BirksLawCalorimeterSD();
+  virtual ~AggregateBirksLawCalorimeterSD();
   /** Initialization.
    *  Creates the hit collection with the name passed in the constructor.
    *  The hit collection is registered in Geant.
@@ -49,11 +50,8 @@ public:
   /** Process hit once the particle hit the sensitive volume.
    *  Checks if the energy deposit is larger than 0, calculates the position and cellID,
    *  saves that into the hit collection.
-   *  The energy deposit is reduced following the Birks law, that is an empirical formula
-   *  for the light yield per path length as a function of the energy loss per path length
-   *  of a particle traversing the scintillator. With th assumption that kB is 0.126 mm/MeV
-   *  for polystyrene-based scintillators.
-   *  New hit is created for each energy deposit.
+   *  If there is already entry in the same cell, the energy is accumulated.
+   *  Otherwise new hit is created.
    *  @param aStep Step in which particle deposited the energy.
    */
   virtual bool ProcessHits(G4Step* aStep, G4TouchableHistory*) final;
@@ -70,4 +68,4 @@ private:
 };
 }
 
-#endif /* DETSENSITIVE_BIRKSLAWCALORIMETERSD_H */
+#endif /* DETSENSITIVE_AGGREGATECALORIMETERSD_H */

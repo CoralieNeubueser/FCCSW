@@ -55,8 +55,6 @@ private:
   SmartIF<IGeoSvc> m_geoSvc;
   /// Name of the electromagnetic calorimeter readout
   Gaudi::Property<std::string> m_readoutName{this, "readoutName", "ECalBarrelPhiEta"};
-  /// Eta-phi segmentation
-  dd4hep::DDSegmentation::FCCSWGridPhiEta* m_segmentation;
   /// Cellid decoder
   dd4hep::DDSegmentation::BitFieldCoder* m_decoder;
   /// Volume manager

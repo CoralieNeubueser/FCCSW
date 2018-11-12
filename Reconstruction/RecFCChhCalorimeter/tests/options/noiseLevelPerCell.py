@@ -11,7 +11,7 @@ geoservice = GeoSvc("GeoSvc", detectors=[ 'file:Detector/DetFCChhBaseline1/compa
 ecalBarrelReadoutName = "ECalBarrelPhiEta"
 hcalBarrelReadoutName = "HCalBarrelReadout"
 # noise files
-BarrelNoisePath = "/afs/cern.ch/work/c/cneubuse/public/FCChh/inBfield/noiseBarrel_mu100.root"
+BarrelNoisePath = "/afs/cern.ch/work/c/cneubuse/public/FCChh/inBfield/noiseBarrel_PU200.root"
 ecalBarrelNoiseHistName = "h_elecNoise_fcc_"
 hcalBarrelNoiseHistName = "h_elec_hcal_layer"
 
@@ -51,7 +51,7 @@ HCalNoiseTool = ReadNoiseFromFileTool("ReadNoiseFromFileToolHCal",
 noisePerCell = CreateFCChhCaloNoiseLevelMap("noisePerCell", 
                                             ECalBarrelNoiseTool = ECalNoiseTool, 
                                             HCalBarrelNoiseTool = HCalNoiseTool,
-                                            outputFileName="cellNoise_Barrel.root",
+                                            outputFileName="/afs/cern.ch/work/c/cneubuse/public/FCChh/cellNoise_map_segHcal_electronicsNoiseLevel.root",
                                             OutputLevel=DEBUG)
 
 # ApplicationMgr

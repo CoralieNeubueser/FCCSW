@@ -23,6 +23,8 @@ PreparePileup::PreparePileup(const std::string& name, ISvcLocator* svcLoc) : Gau
   declareProperty("hits", m_hits, "Hits from which to create cells (input)");
   declareProperty("geometryTool", m_geoTool, "Handle for the geometry tool");
   declareProperty("towerTool", m_towerTool, "Handle for the tower building tool");
+  declareProperty("positionsTool", m_cellPositionsTool,
+                  "Handle for tool to retrieve cell positions");
 }
 
 StatusCode PreparePileup::initialize() {
@@ -40,11 +42,9 @@ StatusCode PreparePileup::initialize() {
     error() << "Readout <<" << m_readoutName << ">> does not exist." << endmsg;
     return StatusCode::FAILURE;
   }
-  // retrieve PhiEta segmentation
-  m_segmentation = dynamic_cast<dd4hep::DDSegmentation::FCCSWGridPhiEta*>(
-      m_geoSvc->lcdd()->readout(m_readoutName).segmentation().segmentation());
-  if (m_segmentation == nullptr) {
-    error() << "There is no phi-eta segmentation." << endmsg;
+  // retrieve cell positions tool
+  if (!m_cellPositionsTool.retrieve()) {
+    error() << "Unable to retrieve cell positions tool!!!" << endmsg;
     return StatusCode::FAILURE;
   }
   // Take readout bitfield decoder from GeoSvc
@@ -155,9 +155,10 @@ StatusCode PreparePileup::execute() {
                 << " is larger than number of layers in the histogram: "
                 << m_numLayers
                 << ". Filling the last histogram." << endmsg;
-
+      
     }
-    double cellEta = m_segmentation->eta(cellId);
+    dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
+    double cellEta = pos.Eta();
     m_energyVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
   }
   // create towers
@@ -233,7 +234,8 @@ StatusCode PreparePileup::finalize() {
                 << ". Filling the last histogram." << endmsg;
 
     }
-    double cellEta = m_segmentation->eta(cellId);
+    dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
+    double cellEta = pos.Eta();
     m_energyAllEventsVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
   }
 

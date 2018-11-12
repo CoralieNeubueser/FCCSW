@@ -20,13 +20,6 @@ StatusCode CellPositionsECalBarrelTool::initialize() {
     error() << "Unable to locate Geometry service." << endmsg;
     return StatusCode::FAILURE;
   }
-  // get PhiEta segmentation
-  m_segmentation = dynamic_cast<dd4hep::DDSegmentation::FCCSWGridPhiEta*>(
-      m_geoSvc->lcdd()->readout(m_readoutName).segmentation().segmentation());
-  if (m_segmentation == nullptr) {
-    error() << "There is no phi-eta segmentation!!!!" << endmsg;
-    return StatusCode::FAILURE;
-  }
   // Take readout bitfield decoder from GeoSvc
   m_decoder = m_geoSvc->lcdd()->readout(m_readoutName).idSpec().decoder();
   m_volman = m_geoSvc->lcdd()->volumeManager();
@@ -67,6 +60,10 @@ void CellPositionsECalBarrelTool::getPositions(const fcc::CaloHitCollection& aCe
 
 dd4hep::Position CellPositionsECalBarrelTool::xyzPosition(const uint64_t& aCellId) const {
   double radius;
+  auto m_segmentation = m_geoSvc->lcdd()->readout(m_readoutName).segmentation().segmentation();
+  if (m_segmentation == nullptr) {
+    error() << "There is no phi-eta segmentation!!!!" << endmsg;
+  }
   dd4hep::DDSegmentation::CellID volumeId = aCellId;
   m_decoder->set(volumeId, "phi", 0);
   m_decoder->set(volumeId, "eta", 0);

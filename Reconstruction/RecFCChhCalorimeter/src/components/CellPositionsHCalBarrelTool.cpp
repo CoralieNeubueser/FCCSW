@@ -72,7 +72,7 @@ dd4hep::Position CellPositionsHCalBarrelTool::xyzPosition(const uint64_t& aCellI
     
   // radius calculated from segmenation + z postion of volumes
   auto inSeg = m_segmentation->position(aCellId);
-  
+  // get radius in cm
   double radius = m_radii[layer];
   dd4hep::Position outSeg(inSeg.x() * radius, inSeg.y() * radius, inSeg.z() * radius);
   return outSeg;

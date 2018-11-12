@@ -84,12 +84,13 @@ StatusCode CreateCaloCells::execute() {
   // If running with noise map already was prepared. Otherwise it is being
   // created below
   if (m_recalibrateBaseline){
+    double offset=0.;
     for (const auto& hit : *hits) {
       // 1.1 Retrieve noise offset from noise tool to recalibrate baseline to 0
-      double rebase = m_readNoiseTool->noiseOffset(hit.core().cellId);
-      if (rebase <= 0.) 
-	debug() << "Offset 0/negative : " << rebase << "for cellID : " << hit.core().cellId << endmsg;
-      m_cellsMap[hit.core().cellId] += ( hit.core().energy - rebase );
+      offset = m_readNoiseTool->noiseOffset(hit.core().cellId);
+      if (offset <= 0.) 
+	debug() << "Offset 0/negative : " << offset << "for cellID : " << hit.core().cellId << endmsg;
+      m_cellsMap[hit.core().cellId] += ( hit.core().energy - offset );
     }
   }
   else{

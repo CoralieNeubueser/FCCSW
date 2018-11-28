@@ -158,6 +158,8 @@ static dd4hep::Ref_t createHCal(dd4hep::Detector& lcdd, xml_h xmlElement, dd4hep
     double dx2 = tn * rmaxLayer - spacing;
     double rMiddle = (rminLayer - sensitiveBarrelRmin) + dz0 - dzModule;
 
+    lLog << MSG::DEBUG << "layer dimensions: " << dx1 << ", " << dx2 << endmsg;
+
     layerR += layerDepths.at(idxLayer);
 
     Volume layerVolume("layerVolume", dd4hep::Trapezoid(dx1, dx2, dy0, dy0, dz0), lcdd.material("Air"));

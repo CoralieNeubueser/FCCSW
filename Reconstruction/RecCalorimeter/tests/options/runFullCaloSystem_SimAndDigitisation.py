@@ -303,4 +303,4 @@ ApplicationMgr(
     EvtSel = 'NONE',
     EvtMax   = int(num_events),
     ExtSvc = [geoservice, podioevent, geantservice, audsvc],
- )
+    OutputLevel=DEBUG )

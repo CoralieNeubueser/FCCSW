@@ -68,7 +68,7 @@ private:
   Gaudi::Property<bool> m_filterCellNoise{this, "filterCellNoise", false,
                                           "Save only cells with energy above threshold?"};
   /// Recalibrate to baseline?
-  Gaudi::Property<bool> m_recalibrateBaseline{this, "recalibrateBaseline", true, "Recalibrate the cells to 0?"};
+  Gaudi::Property<bool> m_recalibrateBaseline{this, "recalibrateBaseline", false, "Recalibrate the cells to 0?"};
 
   /// Handle for calo hits (input collection)
   DataHandle<fcc::CaloHitCollection> m_hits{"hits", Gaudi::DataHandle::Reader, this};

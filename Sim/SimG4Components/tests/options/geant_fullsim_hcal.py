@@ -18,7 +18,10 @@ from common_config import mc_particle_algs, mc_particle_svcs
 from Configurables import SimG4Svc
 ## Geant4 service
 # Configures the Geant simulation: geometry, physics list and user actions
-geantservice = SimG4Svc("SimG4Svc", detector="SimG4DD4hepDetector", physicslist="SimG4FtfpBert", actions="SimG4FullSimActions")
+geantservice = SimG4Svc("SimG4Svc", 
+                        detector="SimG4DD4hepDetector", 
+                        physicslist="SimG4FtfpBert", #"SimG4FtfpBertOptPhotons", 
+                        actions="SimG4FullSimActions")
 
 from Configurables import GeoSvc
 ## DD4hep geometry service
@@ -47,6 +50,7 @@ from Configurables import PodioOutput
 out = PodioOutput("out",
                    OutputLevel=DEBUG)
 out.outputCommands = ["keep *"]
+out.filename = "hcal_sim_test_FTFP_BERT.root"
 
 from Configurables import ApplicationMgr
 ApplicationMgr( TopAlg=mc_particle_algs + [geantsim, out],

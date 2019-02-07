@@ -70,7 +70,7 @@ StatusCode ConeSelection::execute() {
       double deltaR = double(sqrt(pow(circPhi,2)+pow((eta-genEta),2)));
       if (deltaR < m_r){
 	//debug() << "Found a cell in cone: " << cell.cellId() << endmsg;
-	m_cellsMap[cell.cellId()] += cell.energy();
+	m_cellsMap[cell.cellId()] = cell.energy();
       }
     }
     debug() << "Number of selected cells: " << m_cellsMap.size() << endmsg;

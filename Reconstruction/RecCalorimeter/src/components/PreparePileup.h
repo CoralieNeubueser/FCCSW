@@ -6,6 +6,8 @@
 #include "RecInterface/ICalorimeterTool.h"
 #include "RecInterface/ITowerTool.h"
 #include "RecInterface/ICellPositionsTool.h"
+#include "RecInterface/ICaloReadCellNoiseMap.h"
+#include "DetSegmentation/FCCSWGridPhiEta.h"
 class IGeoSvc;
 
 // Gaudi
@@ -68,6 +70,12 @@ private:
   std::vector<std::vector<float>> m_towers;
   /// Handle for tool to get cell positions
   ToolHandle<ICellPositionsTool> m_cellPositionsTool{"CellPositionsECalBarrelTool", this};
+  /// Handle for tool to get electronics noise per cell
+  ToolHandle<ICaloReadCellNoiseMap> m_noiseTool{"TopoCaloNoisyCells", this};
+  /// eta-phi-layer segemntation used?
+  bool useEtaPhiSeg = true;
+  /// Is an energy cut applied?
+  bool useEnergyCutBasedOnElectronicsNoise;
   /// number of towers in eta (calculated from m_deltaEtaTower and the eta size of the first layer)
   int m_nEtaTower;
   /// Number of towers in phi (calculated from m_deltaPhiTower)
@@ -108,6 +116,8 @@ private:
   Gaudi::Property<std::vector<uint>> m_etaSizes{this, "etaSize", {7}, "Size of cluster(s) in eta"};
   /// Number of layersSize of cluster(s) in eta
   Gaudi::Property<std::vector<uint>> m_phiSizes{this, "phiSize", {17}, "Size of cluster(s) in phi"};
+  /// PhiEta segmentation (owned by DD4hep)
+  dd4hep::DDSegmentation::FCCSWGridPhiEta* m_segmentation;
 };
 
 #endif /* RECCALORIMETER_PREPAREPILEUP_H */

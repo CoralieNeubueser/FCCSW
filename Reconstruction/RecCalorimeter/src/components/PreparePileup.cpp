@@ -25,12 +25,14 @@ PreparePileup::PreparePileup(const std::string& name, ISvcLocator* svcLoc) : Gau
   declareProperty("towerTool", m_towerTool, "Handle for the tower building tool");
   declareProperty("positionsTool", m_cellPositionsTool,
                   "Handle for tool to retrieve cell positions");
+  declareProperty("noiseTool", m_noiseTool,
+                  "Handle for tool to retrieve cell levels");
 }
 
 StatusCode PreparePileup::initialize() {
   StatusCode sc = GaudiAlgorithm::initialize();
   if (sc.isFailure()) return sc;
-
+  useEnergyCutBasedOnElectronicsNoise = true;
   m_geoSvc = service("GeoSvc");
   if (!m_geoSvc) {
     error() << "Unable to locate Geometry Service. "
@@ -42,10 +44,23 @@ StatusCode PreparePileup::initialize() {
     error() << "Readout <<" << m_readoutName << ">> does not exist." << endmsg;
     return StatusCode::FAILURE;
   }
-  // retrieve cell positions tool
-  if (!m_cellPositionsTool.retrieve()) {
-    error() << "Unable to retrieve cell positions tool!!!" << endmsg;
-    return StatusCode::FAILURE;
+  // retrieve PhiEta segmentation
+  m_segmentation = dynamic_cast<dd4hep::DDSegmentation::FCCSWGridPhiEta*>(
+									  m_geoSvc->lcdd()->readout(m_readoutName).segmentation().segmentation());
+  if (m_segmentation == nullptr) {
+    error() << "There is no phi-eta segmentation." << endmsg;
+    // try to retrieve cell positions tool
+    if (!m_cellPositionsTool.retrieve()) {
+      error() << "Unable to retrieve cell positions tool!!!" << endmsg;
+      return StatusCode::FAILURE;
+    }
+    // use cell position tool to retrieve eta/phi
+    useEtaPhiSeg = false;
+  }
+  // retrieve noise per cell
+  if (!m_noiseTool.retrieve()) {
+    info() << "No energy cut on the cells energy applied!!!" << endmsg;
+    useEnergyCutBasedOnElectronicsNoise = false;
   }
   // Take readout bitfield decoder from GeoSvc
   m_decoder = m_geoSvc->lcdd()->readout(m_readoutName).idSpec().decoder();
@@ -64,7 +79,7 @@ StatusCode PreparePileup::initialize() {
     m_energyVsAbsEta.push_back(
              new TH2F((m_histogramName + std::to_string(i)).c_str(),
           ("energy per cell vs fabs cell eta in layer " + std::to_string(i)).c_str(),
-          60, 0, 6.0, 5000, -1, m_maxEnergy) );
+          60, 0, 6.0, 10000, -1, m_maxEnergy) );
     if (m_histSvc
   ->regHist("/rec/" + m_histogramName + std::to_string(i), m_energyVsAbsEta.back())
   .isFailure()) {
@@ -74,7 +89,7 @@ StatusCode PreparePileup::initialize() {
     m_energyAllEventsVsAbsEta.push_back(
           new TH2F((m_histogramName + std::to_string(i) + "AllEvents").c_str(),
              ("sum of energy per cell in all events vs fabs cell eta in layer " + std::to_string(i)).c_str(),
-             60, 0, 6.0, 5000, -1, m_maxEnergy*20) );
+             60, 0, 6.0, 10000, -1, m_maxEnergy*20) );
     if (m_histSvc
   ->regHist("/rec/" + m_histogramName + std::to_string(i) + "AllEvents", m_energyAllEventsVsAbsEta.back())
   .isFailure()) {
@@ -85,7 +100,7 @@ StatusCode PreparePileup::initialize() {
   for (uint iCluster = 0; iCluster < m_etaSizes.size(); iCluster++) {
     m_energyVsAbsEtaClusters.push_back(new TH2F((m_histogramName + "_clusterEta" + std::to_string(m_etaSizes[iCluster]) + "Phi" + std::to_string(m_phiSizes[iCluster])).c_str(),
             ("energy per cluster #Delta#eta#times#Delta#varphi = " + std::to_string(m_etaSizes[iCluster]) + "#times" + std::to_string(m_phiSizes[iCluster]) + " vs fabs centre-cell eta ").c_str(),
-            60, 0, 6.0, 5000, -1, m_maxEnergy));
+            60, 0, 6.0, 10000, -1, m_maxEnergy));
     if (m_histSvc->regHist("/rec/" + m_histogramName + "_clusterEta" + std::to_string(m_etaSizes[iCluster]) + "Phi"+ std::to_string(m_phiSizes[iCluster]), m_energyVsAbsEtaClusters.back()).isFailure()) {
       error() << "Couldn't register hist" << endmsg;
       return StatusCode::FAILURE;
@@ -93,7 +108,7 @@ StatusCode PreparePileup::initialize() {
     m_energyAllEventsVsAbsEtaClusters.push_back(new TH2F((m_histogramName + "_clusterEta" + std::to_string(m_etaSizes[iCluster]) + "Phi"
                 + std::to_string(m_phiSizes[iCluster]) + "AllEvents").c_str(),
                ("sum of energy per cluster #Delta#eta#times#Delta#varphi = " + std::to_string(m_etaSizes[iCluster]) + "#times" + std::to_string(m_phiSizes[iCluster]) + " in all events vs fabs centre-cell eta ").c_str(),
-               60, 0, 6.0, 5000, -1, m_maxEnergy*20) );
+               60, 0, 6.0, 10000, -1, m_maxEnergy*20) );
     if (m_histSvc
   ->regHist("/rec/" + m_histogramName + "_clusterEta" + std::to_string(m_etaSizes[iCluster]) + "Phi" + std::to_string(m_phiSizes[iCluster]) + "AllEvents", m_energyAllEventsVsAbsEtaClusters.back())
   .isFailure()) {
@@ -157,9 +172,18 @@ StatusCode PreparePileup::execute() {
                 << ". Filling the last histogram." << endmsg;
       
     }
-    dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
-    double cellEta = pos.Eta();
-    m_energyVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
+    double cellEta;
+    if  (useEtaPhiSeg){
+      cellEta = m_segmentation->eta(cellId);
+    }
+    else{
+      dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
+      cellEta = pos.Eta();
+    }
+    if (useEnergyCutBasedOnElectronicsNoise && (cellEnergy > m_noiseTool->noiseRMS(cellId)) )
+      m_energyVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
+    else if (!useEnergyCutBasedOnElectronicsNoise)
+      m_energyVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
   }
   // create towers
   m_towers.assign(m_nEtaTower, std::vector<float>(m_nPhiTower, 0));
@@ -234,8 +258,14 @@ StatusCode PreparePileup::finalize() {
                 << ". Filling the last histogram." << endmsg;
 
     }
-    dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
-    double cellEta = pos.Eta();
+    double cellEta;
+    if (useEtaPhiSeg){
+      cellEta = m_segmentation->eta(cellId);
+    }    
+    else{
+      dd4hep::Position pos = m_cellPositionsTool->xyzPosition(cellId);
+      cellEta = pos.Eta();
+    }
     m_energyAllEventsVsAbsEta[layerId]->Fill(fabs(cellEta), cellEnergy);
   }
 

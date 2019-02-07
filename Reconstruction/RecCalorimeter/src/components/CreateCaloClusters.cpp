@@ -228,7 +228,10 @@ StatusCode CreateCaloClusters::execute() {
       if (energyBoth[m_systemIdHCal] > 1e-3 &&  energyBoth[m_systemIdECal] > 1e-3){
 	cellsInBoth = true;
       }
-      
+      // if chosed benchmark reco (doCryoCorrection), all clusters run through 2. step
+      if (m_doCryoCorrection)
+	cellsInBoth = true;
+
       // check if cluster energy is equal to sum over cells
       if (static_cast<int>(cluster.core().energy*100.0) != static_cast<int>((energyBoth[m_systemIdECal] + energyBoth[m_systemIdHCal])*100.0))
 	warning() << "The cluster energy is not equal to sum over cell energy: " << cluster.core().energy << ", " << (energyBoth[m_systemIdECal] + energyBoth[m_systemIdHCal]) << endmsg;
@@ -271,7 +274,11 @@ StatusCode CreateCaloClusters::execute() {
 	  if (systemId == m_systemIdECal){  // ECAL system id
 	    posCell = m_cellPositionsECalTool->xyzPosition(cellId);
 	    if ( m_doCryoCorrection ) // cluster on hadron scale, apply cryo correction
-	      cellEnergy = cellEnergy * m_a;
+	      cellEnergy = cellEnergy * m_a1;
+	    else if ( m_doEdepCryoCorrection ){
+	      double a = m_a1 + m_a2*cluster.core().energy + double(m_a3)/sqrt(cluster.core().energy);
+	      cellEnergy = cellEnergy * m_a1;
+	    }
 	    else if ( calibECal && !m_doCryoCorrection ) // cluster on hadron scale
 	      cellEnergy = cellEnergy * m_ehECal;
 	    if ( m_addNoise ) {
@@ -315,7 +322,7 @@ StatusCode CreateCaloClusters::execute() {
 	if ( m_doCryoCorrection ){
 	  debug() << "Energy in last ECal + first HCal layer: " << (energyLastECal+energyFirstHCal) << "GeV " << endmsg;
 	  debug() << "Energy in last ECal x first HCal layer: " << (energyLastECal*energyFirstHCal) << "GeV " << endmsg;
-	  double corr = m_b*sqrt(fabs(energyLastECal*m_a*energyFirstHCal)) + m_c*pow(lastBenchmarkTerm*m_a, 2);
+	  double corr = m_b1*sqrt(fabs(energyLastECal*m_a1*energyFirstHCal)) + m_c1*pow(lastBenchmarkTerm*m_a1, 2);
 	  debug() << "Added energy to cluster  : " << corr << "GeV " << endmsg;
 	  energy = energy + corr;
 	  

@@ -51,6 +51,8 @@ public:
    */
   virtual bool ProcessHits(G4Step* aStep, G4TouchableHistory*) final;
 
+  void SelectForParticleHistory(G4Step* aStep) const;
+
 private:
   /// Collection of calorimeter hits
   G4THitsCollection<dd4hep::sim::Geant4CalorimeterHit>* m_calorimeterCollection;

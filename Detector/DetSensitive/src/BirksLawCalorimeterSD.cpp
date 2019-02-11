@@ -2,6 +2,7 @@
 
 // FCCSW
 #include "DetCommon/DetUtils.h"
+#include "DetCommon/SelectTrackInformation.h"
 
 // DD4hep
 #include "DDG4/Geant4Mapping.h"
@@ -50,6 +51,9 @@ bool BirksLawCalorimeterSD::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
   G4Material* material = aStep->GetPreStepPoint()->GetMaterial();
   G4double charge = aStep->GetPreStepPoint()->GetCharge();
 
+  // set flag for particles which should be written out
+  SelectForParticleHistory(aStep);
+
   if ((charge != 0.) && (m_material.compare(material->GetName()) == 0)) {
     G4double rkb = m_birk1;
     // --- correction for particles with more than 1 charge unit ---
@@ -75,5 +79,9 @@ bool BirksLawCalorimeterSD::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
   hit->energyDeposit = edep;
   m_calorimeterCollection->insert(hit);
   return true;
+}
+ 
+void BirksLawCalorimeterSD::SelectForParticleHistory(G4Step* aStep) const {
+    aStep->GetTrack()->SetUserInformation(new det::SelectTrackInformation("SelectParticle"));
 }
 }

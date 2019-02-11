@@ -2,6 +2,9 @@
 energy = 50000
 magnetic_field = 0
 num_events = 1
+physics = "SimG4FtfpBert" #OptPhotons"
+# HCAL readouts
+hcalBarrelReadoutName = "HCalBarrelReadout"
 
 from Gaudi.Configuration import *
 
@@ -19,12 +22,13 @@ geoservice = GeoSvc("GeoSvc", detectors=[ 'file:Detector/DetFCChhBaseline1/compa
 from Configurables import SimG4FullSimActions
 actions = SimG4FullSimActions()
 actions.enableHistory=True
-actions.energyCut=0.0000001
+actions.energyCut=0.
+actions.selectTaggedOnly=True
 
 # Geant4 service
 # Configures the Geant simulation: geometry, physics list and user actions
 from Configurables import SimG4Svc
-geantservice = SimG4Svc("SimG4Svc", detector='SimG4DD4hepDetector', physicslist="SimG4FtfpBertOptPhotons", actions=actions)
+geantservice = SimG4Svc("SimG4Svc", detector='SimG4DD4hepDetector', physicslist=physics, actions=actions)
 
 # Magnetic field
 from Configurables import SimG4ConstantMagneticFieldTool
@@ -34,7 +38,7 @@ else:
     field = SimG4ConstantMagneticFieldTool("SimG4ConstantMagneticFieldTool",FieldOn=False)
 
 #Setting random seeds for Geant4 simulations
-#geantservice.g4PreInitCommands  += ["/random/setSeeds "+str(x)+" 0"] #where x is the number you want
+geantservice.g4PreInitCommands  += ["/random/setSeeds 100"] #where x is the number you want
 
 #range cut
 geantservice.g4PreInitCommands += ["/run/setCut 0.1 mm"]
@@ -58,6 +62,31 @@ savehisttool = SimG4SaveParticleHistory("saveHistory")
 savehisttool.mcParticles.Path = "simParticles"
 savehisttool.genVertices.Path = "simVertices"
 
+#Configure tools for calo reconstruction
+from Configurables import CalibrateCaloHitsTool
+calibHcells = CalibrateCaloHitsTool("CalibrateHCal", invSamplingFraction=(1./.0249))
+
+from Configurables import CreateCaloCells
+createcells = CreateCaloCells("CreateCaloCells",
+                              calibTool=calibHcells,
+                              doCellCalibration = True,
+                              addCellNoise = False, filterCellNoise = False,
+                              OutputLevel = DEBUG)
+createcells.hits.Path="HCalHits"
+createcells.cells.Path="HCalCells"
+#Configure tools for calo cell positions                                                                                                                                                               
+from Configurables import CellPositionsHCalBarrelNoSegTool
+HCalBcells = CellPositionsHCalBarrelNoSegTool("CellPositionsHCalBarrel",
+                                    readoutName = hcalBarrelReadoutName,
+                                    OutputLevel = INFO)
+# cell positions
+from Configurables import CreateCellPositions
+positionsHcalBarrel = CreateCellPositions("positionsHcalBarrel",
+                                          positionsTool=HCalBcells,
+                                          hits = "HCalCells",
+                                          positionedHits = "HCalCellPositions",
+                                          OutputLevel = INFO)
+
 geantsim = SimG4Alg("SimG4Alg",
                     outputs= ["SimG4SaveCalHits/saveHCalHits",
                               "SimG4SaveParticleHistory/saveHistory"],
@@ -69,7 +98,7 @@ from Configurables import PodioOutput
 out = PodioOutput("out",
                    OutputLevel=DEBUG)
 out.outputCommands = ["keep *"]
-out.filename = "output_hcalSim_e"+str(int(energy/1000))+"GeV_eta036_1events.root"
+out.filename = "output_hcalSim_"+str(physics)+"_e"+str(int(energy/1000))+"GeV_eta036_1events.root"
 
 #CPU information
 from Configurables import AuditorSvc, ChronoAuditor
@@ -80,7 +109,7 @@ geantsim.AuditExecute = True
 
 # ApplicationMgr
 from Configurables import ApplicationMgr
-ApplicationMgr( TopAlg = [geantsim, out],
+ApplicationMgr( TopAlg = [geantsim, createcells, positionsHcalBarrel, out],
                 EvtSel = 'NONE',
                 EvtMax   = num_events,
                 # order is important, as GeoSvc is needed by G4SimSvc

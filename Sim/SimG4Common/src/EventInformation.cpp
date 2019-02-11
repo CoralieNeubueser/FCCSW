@@ -8,12 +8,13 @@
 #include "datamodel/MCParticleCollection.h"
 
 namespace sim {
-EventInformation::EventInformation() { 
+EventInformation::EventInformation() {
   m_genVertices = new fcc::GenVertexCollection();
   m_mcParticles = new fcc::MCParticleCollection();
 }
 
-void EventInformation::setCollections(fcc::GenVertexCollection*& aGenVertexCollection, fcc::MCParticleCollection*& aMCParticleCollection) {
+void EventInformation::setCollections(fcc::GenVertexCollection*& aGenVertexCollection,
+                                      fcc::MCParticleCollection*& aMCParticleCollection) {
   // ownership is transferred here - to SaveTool which is supposed to put it in the event store
   aGenVertexCollection = m_genVertices;
   aMCParticleCollection = m_mcParticles;
@@ -33,6 +34,7 @@ void EventInformation::addParticle(const G4Track* aSecondary) {
   edmParticle.p4().mass = mass * sim::g42edm::energy;
   edmParticle.core().bits = g4ID;
   edmParticle.core().pdgId = aSecondary->GetDynamicParticle()->GetDefinition()->GetPDGEncoding();
+  edmParticle.core().charge = aSecondary->GetDynamicParticle()->GetCharge();
 
   auto g4EndPos = aSecondary->GetPosition();
   auto edmEndVertex = m_genVertices->create();
@@ -45,12 +47,13 @@ void EventInformation::addParticle(const G4Track* aSecondary) {
   m_g4IdToEndVertexMap[g4ID] = edmVtxId;
 
   size_t motherID = aSecondary->GetParentID();
-  if (motherID) {  // the particle is not a primary
-    edmParticle.core().status = 201; // FCC convention for status of secondary sim particle
+  if (motherID) {                     // the particle is not a primary
+    edmParticle.core().status = 201;  // FCC convention for status of secondary sim particle
     auto parentVtxId = m_g4IdToEndVertexMap.find(motherID);
     if (parentVtxId != m_g4IdToEndVertexMap.end()) {
       auto prodVertex = m_genVertices->at(parentVtxId->second);
       edmParticle.startVertex(prodVertex);
+      edmParticle.core().vertex = prodVertex.position();
     }
   } else {
     edmParticle.core().status = 1;
@@ -61,6 +64,7 @@ void EventInformation::addParticle(const G4Track* aSecondary) {
     edmStartVertex.z(g4StartPos.z() * sim::g42edm::length);
     edmStartVertex.ctau(aSecondary->GetGlobalTime() - aSecondary->GetLocalTime() * sim::g42edm::length);
     edmParticle.startVertex(edmStartVertex);
+    edmParticle.core().vertex = edmStartVertex.position();
   }
 }
 }

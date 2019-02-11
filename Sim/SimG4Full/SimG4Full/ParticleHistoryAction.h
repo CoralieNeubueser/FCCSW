@@ -1,6 +1,8 @@
 #ifndef SIMG4FULL_PARTICLEHISTORYACTION_H
 #define SIMG4FULL_PARTICLEHISTORYACTION_H
 
+#include <G4String.hh>
+#include <map>
 #include "G4UserTrackingAction.hh"
 
 /** @class ParticleHistoryAction SimG4Full/SimG4Full/ParticleHistoryAction.h ParticleHistoryAction.h
@@ -16,7 +18,13 @@
 namespace sim {
 class ParticleHistoryAction : public G4UserTrackingAction {
 public:
-  ParticleHistoryAction(double energyCut);
+  /** constructor
+  * @param[in] energyCut energy threshold above which particles are saved
+  * @param[in] selectTaggedOnly possibility select only tagged (by setting the G4VUserTrackInformation of the G4Track)
+  * tracks, if set to true
+  */
+  ParticleHistoryAction(double energyCut, bool selectTaggedOnly = false);
+  /// destructor
   virtual ~ParticleHistoryAction() = default;
 
   /// empty action - particles are only saved at the end of track
@@ -25,13 +33,20 @@ public:
   void PostUserTrackingAction(const G4Track* aTrack);
 
   /** Simple filter for particles to be saved, based on their energy.
-   * @param[in] aTrack track of the particle to be saved
-   * @param[in] aEnergyCut energy threshold above which particles are saved
-   */
-  bool selectSecondary(const G4Track& aTrack, double aEnergyCut);
+  * @param[in] aTrack track of the particle to be saved
+  * @param[in] aEnergyCut energy threshold above which particles are saved
+  * @param[in] selectTaggedOnly possibility select only tagged (by setting the G4VUserTrackInformation of the G4Track)
+  * tracks, if set to true
+  */
+  bool selectParticle(const G4Track& aTrack, double aEnergyCut, bool selectTaggedOnly = false);
+
 private:
   /// energy threshold for secondaries to be saved
   double m_energyCut;
+  /// name  of track information to exclude certain particles
+  bool m_selectTaggedOnly;
+  /// map of tracks
+  std::map<int, const G4Track*> m_trackMap;
 };
 }
 

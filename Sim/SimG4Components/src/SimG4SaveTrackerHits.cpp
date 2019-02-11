@@ -1,21 +1,20 @@
 #include "SimG4SaveTrackerHits.h"
 
 // FCCSW
+#include "DetCommon/Geant4PreDigiTrackHit.h"
 #include "DetInterface/IGeoSvc.h"
 #include "SimG4Common/Units.h"
-#include "DetCommon/Geant4PreDigiTrackHit.h"
 
 // Geant4
 #include "G4Event.hh"
 
 // datamodel
+#include "datamodel/DigiTrackHitAssociationCollection.h"
 #include "datamodel/PositionedTrackHitCollection.h"
 #include "datamodel/TrackHitCollection.h"
-#include "datamodel/DigiTrackHitAssociationCollection.h"
 
 // DD4hep
 #include "DD4hep/Detector.h"
-
 
 DECLARE_TOOL_FACTORY(SimG4SaveTrackerHits)
 
@@ -67,8 +66,8 @@ StatusCode SimG4SaveTrackerHits::saveOutput(const G4Event& aEvent) {
       collect = collections->GetHC(iter_coll);
       if (std::find(m_readoutNames.begin(), m_readoutNames.end(), collect->GetName()) != m_readoutNames.end()) {
         size_t n_hit = collect->GetSize();
-        info() << "\t" << n_hit << " hits are stored in a tracker collection #" << iter_coll << ": "
-               << collect->GetName() << endmsg;
+        debug() << "\t" << n_hit << " hits are stored in a tracker collection #" << iter_coll << ": "
+                << collect->GetName() << endmsg;
         for (size_t iter_hit = 0; iter_hit < n_hit; iter_hit++) {
           hit = dynamic_cast<fcc::Geant4PreDigiTrackHit*>(collect->GetHit(iter_hit));
           fcc::TrackHit edmHit = edmHits->create();
@@ -90,7 +89,6 @@ StatusCode SimG4SaveTrackerHits::saveOutput(const G4Event& aEvent) {
           fcc::PositionedTrackHit edmPositionedHit = edmPositions->create(preStepPosition, edmHitCore);
           edmDigiHit.postStepPosition(postStepPosition);
           edmDigiHit.hit(edmPositionedHit);
-          
         }
       }
     }

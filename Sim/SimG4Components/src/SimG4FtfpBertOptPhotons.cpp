@@ -19,8 +19,8 @@ StatusCode SimG4FtfpBertOptPhotons::initialize() { return AlgTool::initialize();
 StatusCode SimG4FtfpBertOptPhotons::finalize() { return AlgTool::finalize(); }
 
 G4VModularPhysicsList* SimG4FtfpBertOptPhotons::physicsList() {
-  auto pL = new FTFP_BERT;
-  pL->RegisterPhysics( new G4OpticalPhysics );
+  G4VModularPhysicsList* physicsList = new FTFP_BERT;
+  physicsList->RegisterPhysics( new G4OpticalPhysics );
   // ownership passed to SimG4Svc which will register it in G4RunManager. To be deleted in ~G4RunManager()
-  return pL;
+  return physicsList;
 }

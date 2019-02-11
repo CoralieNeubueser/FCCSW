@@ -2,7 +2,7 @@
 energy = 50000
 magnetic_field = 0
 num_events = 1
-physics = "SimG4FtfpBert" #OptPhotons"
+physics = "SimG4FtfpBertOptPhotons"
 # HCAL readouts
 hcalBarrelReadoutName = "HCalBarrelReadout"
 

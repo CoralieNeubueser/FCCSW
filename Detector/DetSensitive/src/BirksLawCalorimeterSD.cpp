@@ -14,6 +14,7 @@
 
 // Geant4
 #include "G4SDManager.hh"
+#include "G4OpticalPhoton.hh"
 
 namespace det {
 BirksLawCalorimeterSD::BirksLawCalorimeterSD(const std::string& aDetectorName,
@@ -44,16 +45,20 @@ void BirksLawCalorimeterSD::Initialize(G4HCofThisEvent* aHitsCollections) {
 bool BirksLawCalorimeterSD::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
   // check if energy was deposited
   G4double edep = aStep->GetTotalEnergyDeposit();
-  if (edep == 0.) return false;
+  //  if (edep == 0.) return false;
 
   G4double response = 0.;
 
   G4Material* material = aStep->GetPreStepPoint()->GetMaterial();
   G4double charge = aStep->GetPreStepPoint()->GetCharge();
-
-  // set flag for particles which should be written out
-  SelectForParticleHistory(aStep);
-
+  
+  // check if track is optical photon
+  auto track = aStep->GetTrack();
+  if ( track->GetDefinition() == G4OpticalPhoton::Definition() ){
+    // set flag for particles which should be written out   
+    SelectForParticleHistory(aStep);
+  }
+  
   if ((charge != 0.) && (m_material.compare(material->GetName()) == 0)) {
     G4double rkb = m_birk1;
     // --- correction for particles with more than 1 charge unit ---

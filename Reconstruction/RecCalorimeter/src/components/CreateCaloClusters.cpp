@@ -317,6 +317,8 @@ StatusCode CreateCaloClusters::execute() {
 	newCluster.core().position.x = posX / energy;
 	newCluster.core().position.y = posY / energy;
 	newCluster.core().position.z = posZ / energy;
+        // setting the deltaR determined on EM scale
+	newCluster.core().time = cluster.time();
 
 	// Correct for lost energy in cryostat
 	if ( m_doCryoCorrection ){

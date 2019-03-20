@@ -119,6 +119,12 @@ StatusCode CaloTopoCluster::execute() {
     double posY = 0.;
     double posZ = 0.;
     double energy = 0.;
+    double deltaR = 0.;
+    std::vector<double> posPhi;
+    std::vector<double> posEta;
+    std::vector<double> vecEnergy;
+    double sumPhi = 0.;
+    double sumEta = 0.;
     std::map<int,int> system;
 
     for (auto pair : i.second) {
@@ -160,7 +166,12 @@ StatusCode CaloTopoCluster::execute() {
       posX += posCell.X() * newCell.core().energy;
       posY += posCell.Y() * newCell.core().energy;
       posZ += posCell.Z() * newCell.core().energy;
-      // edmClusterCells->push_back(newCell);
+      posPhi.push_back(posCell.Phi());
+      posEta.push_back(posCell.Eta());
+      vecEnergy.push_back(newCell.core().energy);
+      sumPhi += posCell.Phi() * newCell.core().energy;
+      sumEta += posCell.Eta() * newCell.core().energy;
+      
       cluster.addhits(newCell);
       allCells.erase(cID);
     }
@@ -168,13 +179,28 @@ StatusCode CaloTopoCluster::execute() {
     clusterCore.position.x = posX / energy;
     clusterCore.position.y = posY / energy;
     clusterCore.position.z = posZ / energy;
+    // store deltaR of cluster in time for the moment..
+    sumPhi = sumPhi / energy;
+    sumEta = sumEta / energy;
+    int counter = 0;
+    for (auto entryEta : posEta){
+      deltaR += sqrt(pow(entryEta-sumEta,2) + pow(posEta[counter]-sumPhi,2)) * vecEnergy[counter];
+      counter++;
+    }
+    clusterCore.time = deltaR / energy;
     verbose() << "Cluster energy:     " << clusterCore.energy << endmsg;
     checkTotEnergy += clusterCore.energy;
 
     edmClusters->push_back(cluster);
     if (system.size() > 1)
       clusterWithMixedCells++;
+
+    posPhi.clear();
+    posEta.clear();
+    vecEnergy.clear();
+
   }
+
   m_clusterCellsCollection.put(edmClusterCells);
   debug() << "Number of clusters with cells in E and HCal:        " << clusterWithMixedCells << endmsg;
   debug() << "Total energy of clusters:                                      " << checkTotEnergy << endmsg;

@@ -120,9 +120,9 @@ StatusCode CaloTopoCluster::execute() {
     double posZ = 0.;
     double energy = 0.;
     double deltaR = 0.;
-    std::vector<double> posPhi;
-    std::vector<double> posEta;
-    std::vector<double> vecEnergy;
+    std::vector<double> posPhi (i.second.size());
+    std::vector<double> posEta (i.second.size());
+    std::vector<double> vecEnergy (i.second.size());
     double sumPhi = 0.;
     double sumEta = 0.;
     std::map<int,int> system;

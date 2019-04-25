@@ -7,6 +7,7 @@
 #include "RecInterface/INoiseConstTool.h"
 #include "RecInterface/ICellPositionsTool.h"
 #include "RecInterface/ICaloReadNeighboursMap.h"
+//#include "SimG4Interface/ISimG4ParticleSmearTool.h"
 
 // DD4hep
 #include "DDSegmentation/Segmentation.h"
@@ -64,11 +65,13 @@ public:
   std::vector<std::pair<uint64_t, uint>> 
     searchForNeighbours(const uint64_t aCellId,
 			uint aClusterID, 
-			std::vector<std::pair<uint64_t, int> >& aCellType,
+			const std::map<uint64_t, int> aCellType,
 			std::map<uint64_t, uint>& aClusterOfCell,
                         std::map<uint64_t, TLorentzVector> aCellPosition,
-			std::map<uint, std::vector<std::pair<uint64_t, int>>>& aPreClusterCollection,
-			std::map<uint, TLorentzVector>& aClusterPositions);
+			std::map<uint, TLorentzVector>& aClusterPositions,
+			const int iterator,
+			std::map<uint, std::vector<std::vector<std::pair<uint64_t, uint> > > >& mapVec
+			);
 
   StatusCode execute();
 
@@ -82,8 +85,6 @@ private:
 
   /// Handle for calo clusters (input collection)
   DataHandle<fcc::CaloClusterCollection> m_clusters{"calo/clusters", Gaudi::DataHandle::Reader, this};
-  /// Handle for calo clusters (input collection)
-  DataHandle<fcc::MCParticleCollection> m_genParticles{"calo/genParticles", Gaudi::DataHandle::Reader, this};
   /// Handle for calo clusters (output collection)
   DataHandle<fcc::CaloClusterCollection> m_newClusters{"calo/calibClusters", Gaudi::DataHandle::Writer, this};
   // Handle for calo cells (output collection)
@@ -113,6 +114,9 @@ private:
   ToolHandle<INoiseConstTool> m_noiseECalTool{"NoiseCaloCellsFlatTool", this};
   /// Handle for the calorimeter cells noise tool
   ToolHandle<INoiseConstTool> m_noiseHCalTool{"NoiseCaloCellsFlatTool", this};
+
+  /// Handle for the calorimeter cells noise tool 
+  //  ToolHandle<ISimG4ParticleSmearTool> m_smearTool{"SimG4ParticleSmearRootFile", this};
 
   /// General decoder to encode the calorimeter sub-system to determine which positions tool to use
   dd4hep::DDSegmentation::BitFieldCoder* m_decoder = new dd4hep::DDSegmentation::BitFieldCoder("system:4");

@@ -205,6 +205,7 @@ createTopoClusters = CaloTopoCluster("CreateTopoClusters",
                                      seedSigma = 4,
                                      neighbourSigma = 2,
                                      lastNeighbourSigma = 0,
+                                     noSegmentationHCal = False,
                                      OutputLevel = DEBUG) 
 createTopoClusters.clusters.Path ="caloClustersBarrel" 
 createTopoClusters.clusterCells.Path = "caloClusterBarrelCells"

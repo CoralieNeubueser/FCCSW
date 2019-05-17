@@ -68,9 +68,7 @@ public:
 			const std::map<uint64_t, int> aCellType,
 			std::map<uint64_t, uint>& aClusterOfCell,
                         std::map<uint64_t, TLorentzVector> aCellPosition,
-			std::map<uint, TLorentzVector>& aClusterPositions,
-			const int iterator,
-			std::map<uint, std::vector<std::vector<std::pair<uint64_t, uint> > > >& mapVec
+			std::map<uint, TLorentzVector>& aClusterPositions
 			);
 
   StatusCode execute();

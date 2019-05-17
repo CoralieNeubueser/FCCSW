@@ -3,10 +3,10 @@ import os
 from GaudiKernel.SystemOfUnits import MeV,GeV
 
 # simulations setup
-energy=50*GeV
-num_events=3
+energy=100*GeV
+num_events=10
 magnetic_field=1
-particleType="e-"
+particleType="pi-"
 
 from Gaudi.Configuration import *
 
@@ -88,7 +88,7 @@ savehcalfwdtool.caloHits.Path = "HCalFwdHits"
 # next, create the G4 algorithm, giving the list of names of tools ("XX/YY")
 from Configurables import SimG4SingleParticleGeneratorTool
 pgun = SimG4SingleParticleGeneratorTool("SimG4SingleParticleGeneratorTool",saveEdm=True,
-                particleName=particleType,energyMin=energy,energyMax=energy,etaMin=-5.0,etaMax=5.0,
+                particleName=particleType,energyMin=energy,energyMax=energy,etaMin=-0.5,etaMax=0.5,
                 OutputLevel = DEBUG)
 
 geantsim = SimG4Alg("SimG4Alg",
@@ -262,7 +262,7 @@ createHcalFwdCells.cells.Path="HCalFwdCells"
 out = PodioOutput("out",
                   OutputLevel=INFO)
 out.outputCommands = ["drop *", "keep ECalBarrelCells", "keep ECalEndcapCells", "keep ECalFwdCells", "keep HCalBarrelCells", "keep HCalExtBarrelCells", "keep HCalEndcapCells", "keep HCalFwdCells", "keep GenParticles","keep GenVertices"]
-out.filename = "output_fullCalo_SimAndDigi_e50GeV_"+str(num_events)+"events.root"
+out.filename = "output_fullCalo_SimAndDigi_"+str(particleType)+str(energy)+"GeV_"+str(num_events)+"events.root"
 
 #CPU information
 from Configurables import AuditorSvc, ChronoAuditor

@@ -173,7 +173,10 @@ StatusCode CaloTopoCluster::execute() {
       sumEta += posCell.Eta() * newCell.core().energy;
       
       cluster.addhits(newCell);
-      allCells.erase(cID);
+      auto er = allCells.erase(cID);
+      
+      if (er!=1)
+	info() << "Problem in erasing cell ID from map." << endmsg;
     }
     clusterCore.energy = energy;
     clusterCore.position.x = posX / energy;
@@ -203,8 +206,8 @@ StatusCode CaloTopoCluster::execute() {
 
   m_clusterCellsCollection.put(edmClusterCells);
   debug() << "Number of clusters with cells in E and HCal:        " << clusterWithMixedCells << endmsg;
-  debug() << "Total energy of clusters:                                      " << checkTotEnergy << endmsg;
-  debug() << "Leftover cells :                                                     " << allCells.size() << endmsg;
+  debug() << "Total energy of clusters:                           " << checkTotEnergy << endmsg;
+  debug() << "Leftover cells :                                    " << allCells.size() << endmsg;
   return StatusCode::SUCCESS;
 }
 
@@ -266,9 +269,10 @@ StatusCode CaloTopoCluster::buildingProtoCluster(
 	    return StatusCode::FAILURE;
 	  }
           verbose() << "Next neighbours assigned to clusterId : " << clusterId << endmsg;
-          vecNextNeighbours[it] = CaloTopoCluster::searchForNeighbours(id.first, clusterId, aNumSigma, aCells, clusterOfCell,
+          auto vec = CaloTopoCluster::searchForNeighbours(id.first, clusterId, aNumSigma, aCells, clusterOfCell,
 								       aPreClusterCollection, true);
-        }
+	  vecNextNeighbours[it].insert(vecNextNeighbours[it].end(), vec.begin(), vec.end());
+	}
         verbose() << "Found " << vecNextNeighbours[it].size() << " more neighbours.." << endmsg;
       }
       // last try with different condition on neighbours

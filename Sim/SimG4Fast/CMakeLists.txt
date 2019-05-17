@@ -11,6 +11,7 @@ include(${Geant4_USE_FILE})
 find_package(ROOT COMPONENTS Tree)
 
 gaudi_install_headers(SimG4Fast)
+gaudi_install_python_modules()
 
 gaudi_add_library(SimG4Fast
                  src/lib/*.cpp

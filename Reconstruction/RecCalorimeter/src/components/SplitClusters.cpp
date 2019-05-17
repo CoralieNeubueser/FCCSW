@@ -228,13 +228,12 @@ StatusCode SplitClusters::execute() {
     if (newClusters!=newSeeds.size()){
       error() << "Number of new seeds not num found cells qualifying for sub-cluster!!! " << endmsg;
     }
-
     verbose() << "Elements in cells types before sub-cluster building: " << cellsType.size() << endmsg;
+    
     // Build new clusters, if more than 2 new seeds have been found.
     if (newClusters>1){
       totSplitClusters++;
-      uint clusterID = clusters->size() + 1;
-      std::map<uint64_t, uint> clusterOfCell;
+
       debug() << "..... split cluster into " << newSeeds.size() << ". " << endmsg;
       debug() << "################################### " << endmsg;
       debug() << "##  Start building sub-clusters ###" << endmsg;
@@ -242,9 +241,11 @@ StatusCode SplitClusters::execute() {
 
       // build clusters in multiple iterations
       int iter = 0;
+      uint clusterID = clusters->size() + 1;
+      std::map<uint64_t, uint> clusterOfCell;
       // map of clusterID to next neighbours vector to find next cells
       std::map<uint, std::vector<std::vector<std::pair<uint64_t, uint> > > > mapVecNextNeighbours;
-
+      
       debug() << "Iteration 0: " << endmsg;
       while (iter == 0){
 	for (auto& seed : newSeeds){
@@ -254,9 +255,6 @@ StatusCode SplitClusters::execute() {
 	  preClusterCollection[clusterID].reserve( cluster.hits_size() );
 	  clusterPositions.emplace( clusterID, cellsPosition[seed.first] );
 	  
-	  // erase this cellID, since it has been assigned and checked before, not needed anylonger.                                                                                                  
-	  cellsType.erase(seed.first);
-
 	  debug() << "Number of cells in clusters before filling : " << clusterOfCell.size() << endmsg;
 	  debug() << "Old Cluster (" << clusterID << ") position(x,y,z) / energy(GeV) : (" << clusterPositions[clusterID].X() <<", "<< clusterPositions[clusterID].X() <<", "<< clusterPositions[clusterID].X() <<") "<< clusterPositions[clusterID].Energy() <<" . " << endmsg;
 
@@ -266,15 +264,13 @@ StatusCode SplitClusters::execute() {
 							 cellsType, 
 							 clusterOfCell, 
 							 cellsPosition, 
-							 clusterPositions,
-							 0,
-							 mapVecNextNeighbours
+							 clusterPositions
 							 );
 	  std::vector<std::vector<std::pair<uint64_t, uint> > > vecVec;
-	  vecVec.resize(10000);
+	  vecVec.resize(1000); // number of maximum iterations
 	  vecVec.insert(vecVec.begin(), vec);
 	  
-	  mapVecNextNeighbours.emplace( clusterID, vecVec );
+	  mapVecNextNeighbours.emplace(clusterID, vecVec);
 	  
 	  debug() << "Found " << mapVecNextNeighbours[clusterID][0].size() << " more neighbours.." << endmsg;
 	  debug() << "Left cells in vector " << cellsType.size() << ". " << endmsg;
@@ -294,12 +290,8 @@ StatusCode SplitClusters::execute() {
 	// loop through new clusters for every iteration
 	for (uint newCluster = 1; newCluster <= newSeeds.size(); newCluster++){
 	  clusterID = clusters->size() + newCluster;
-	  // if this cluster has no further neighbours, check next one.
-	  if (mapVecNextNeighbours.find(clusterID) == mapVecNextNeighbours.end()){
-	    continue;
-	  }
 	  // if neighbours have been found, continue...
-	  else if (mapVecNextNeighbours[clusterID][iter-1].size() > 0) {
+	  if (mapVecNextNeighbours[clusterID][iter-1].size() > 0) {
 	    foundNewNeighbours = true;
 	    debug() << mapVecNextNeighbours[clusterID][iter-1].size() << ".. neighbours assigned to clusterId : " << clusterID << endmsg;
 	    for (auto& id : mapVecNextNeighbours[clusterID][iter-1]) {
@@ -317,12 +309,13 @@ StatusCode SplitClusters::execute() {
 							    cellsType, 
 							    clusterOfCell, 
 							    cellsPosition, 
-							    clusterPositions,
-							    iter,
-							    mapVecNextNeighbours
+							    clusterPositions
 							    );
 	      // add the next neighbours at end of already found neighbours in this round.
-	      mapVecNextNeighbours[clusterID][iter].insert(mapVecNextNeighbours[clusterID][iter].end(), vec.begin(), vec.end());
+              verbose() << "Size before additional vec : " << mapVecNextNeighbours[clusterID][iter].size() << endmsg;
+	      mapVecNextNeighbours[clusterID][iter].reserve(mapVecNextNeighbours[clusterID][iter].size() + vec.size());
+	      mapVecNextNeighbours[clusterID][iter].insert(mapVecNextNeighbours[clusterID][iter].end(), std::make_move_iterator(vec.begin()), std::make_move_iterator(vec.end()));
+	      verbose() << "Size after additional vec : " << mapVecNextNeighbours[clusterID][iter].size() << endmsg;
 	    }
 	  }
 	}
@@ -342,7 +335,7 @@ StatusCode SplitClusters::execute() {
       // in case not all cells have been assigned to new cluster, fill into seperate cluster and mark them with cell type=4.
       if (allClusteredCells!=cluster.hits_size()){
 	error() << "NUMBER OF CELLS BEFORE " << cluster.hits_size() << " AND AFTER CLUSTER SPLITTING (map) " << clusterOfCell.size() << "!!" << endmsg;
-	error() << "Elements in cells types after sub-cluster building: " << cellsType.size() << endmsg;                                                                                                                   
+	error() << "Elements in cells types after sub-cluster building: " << cellsType.size() << endmsg;                                                                        
 	
 	fcc::CaloCluster cluster;
 	auto& clusterCore = cluster.core();
@@ -363,8 +356,13 @@ StatusCode SplitClusters::execute() {
 	  newCell.core().bits = 4;
 	  energy += fNEnergy.second;
 	}
+	clusterCore.bits = 3;
 	clusterCore.energy = energy;
-	totEnergyAfter += energy;
+	clusterCore.position.x = 0.;
+        clusterCore.position.y = 0.;
+        clusterCore.position.z = 0.;
+        totEnergyAfter += energy;
+
         edmClusters->push_back(cluster);
 	debug() << "Left-over cluster energy:     " << clusterCore.energy << endmsg;
       }
@@ -438,6 +436,10 @@ StatusCode SplitClusters::execute() {
       }
       if(cellsType.size()>0)
 	info() << "Not all cluster cells have been assigned. " << cellsType.size() << endmsg;
+      
+      // clear maps
+      clusterOfCell.clear();
+      mapVecNextNeighbours.clear();
     }
     
     else{
@@ -485,10 +487,8 @@ SplitClusters::searchForNeighbours(const uint64_t aCellId,
 				   const std::map<uint64_t, int> aCellsType,
 				   std::map<uint64_t, uint>& aClusterOfCell,
 				   std::map<uint64_t, TLorentzVector> aCellPosition,
-				   std::map<uint, TLorentzVector>& aClusterPosition,
-				   const int iterator,
-				   std::map<uint, std::vector<std::vector<std::pair<uint64_t, uint> > > >& mapVec) {
-  //){
+				   std::map<uint, TLorentzVector>& aClusterPosition
+				   ){
   // Fill vector to be returned, next cell ids and cluster id for which neighbours are found
   std::vector<std::pair<uint64_t, uint> > addedNeighbourIds;
 
@@ -508,58 +508,46 @@ SplitClusters::searchForNeighbours(const uint64_t aCellId,
       // Find the neighbour in the Calo cells list
       auto itAllCellTypes = aCellsType.find( neighbourID );
       auto fCellType = *itAllCellTypes;
-      auto itAllUsedCells = aClusterOfCell.find(neighbourID);
+      auto itAllUsedCells = aClusterOfCell.find( neighbourID );
       auto fCellCluster = *itAllUsedCells;
 
-      // If cell has type.. 
+      // If cell has type.. is found in the list of clustered cells
       if (itAllCellTypes != aCellsType.end()){
 	verbose() << "Found neighbour with CellID: " << neighbourID << endmsg;
 	verbose() << "Neighbour is of cell type " << fCellType.second << ". " << endmsg;
 	
 	// and is not assigned to a cluster
 	if (itAllUsedCells == aClusterOfCell.end()) {
-	  
 	  verbose() << "Add neighbour to cluster " << aClusterID << endmsg;
-	  // retrieve the cell
-	  // add neighbour to cells for cluster
+	  // add neighbour to cells of cluster
 	  aClusterPosition[aClusterID] += aCellPosition[neighbourID]; // add lorentz vector
 	  aClusterOfCell.emplace( neighbourID, aClusterID );
 	  
 	  addedNeighbourIds.push_back(std::make_pair(neighbourID, aClusterID));
 	}
-	// and is already assigned to cluster
-	else if (itAllUsedCells != aClusterOfCell.end()) { 
-
-	  // check if its assigned to different clusterID
-	  if ( fCellCluster.second != aClusterID ) {
-	    uint clusterIDToMerge = fCellCluster.second;
-	    verbose() << "This neighbour was found in cluster " << clusterIDToMerge << ", and cluster " << aClusterID
-		      << ". It will be evaluate which one has higher geomertrical significance!" << endmsg;
-	    verbose() << "Distances to cluster core: " << aClusterPosition[clusterIDToMerge].DeltaR(aCellPosition[neighbourID]) << ", and this cluster: " << aClusterPosition[aClusterID].DeltaR(aCellPosition[neighbourID]) << endmsg;
-
-	    // get distance of cell from cog of clusters, and test if the cell is closer to current cluster
-	    if ( aClusterPosition[aClusterID].DeltaR(aCellPosition[neighbourID]) < aClusterPosition[clusterIDToMerge].DeltaR(aCellPosition[neighbourID]) ){
-	      verbose() << "Neighbour is assigned to cluster1. " << endmsg;	      
-	      addedNeighbourIds.push_back(std::make_pair(neighbourID, aClusterID));
-	      // remove the cell from the other cluster
-	      aClusterPosition[clusterIDToMerge] -= aCellPosition[neighbourID]; // remove lorentz vector
-	      // add cell to correct cluster         
-              aClusterPosition[aClusterID] += aCellPosition[neighbourID]; // add lorentz vector
-              
-	      aClusterOfCell[neighbourID] = aClusterID;
-	      continue;
-	    }
-	    else{
-	      verbose() << "Neighbour stays assigned to cluster2. " << endmsg;
-	      // mapVec[aClusterID][iterator].push_back(std::make_pair(neighbourID, fCellType.second));
-	      aClusterOfCell[neighbourID] = clusterIDToMerge;
-	      continue;
-	    }
+	// and is already assigned to cluster, check if its assigned to different clusterID 
+	else if ( itAllUsedCells != aClusterOfCell.end() && fCellCluster.second != aClusterID ) { 
+	  uint clusterIDToMerge = fCellCluster.second;
+	  verbose() << "This neighbour was found in cluster " << clusterIDToMerge << ", and cluster " << aClusterID
+		    << ". It will be evaluate which one has higher geomertrical significance!" << endmsg;
+	  verbose() << "Distances to cluster core: " << aClusterPosition[clusterIDToMerge].DeltaR(aCellPosition[neighbourID]) << ", and this cluster: " << aClusterPosition[aClusterID].DeltaR(aCellPosition[neighbourID]) << endmsg;
+	  
+	  // get distance of cell from cog of clusters, and test if the cell is closer to current cluster
+	  if ( aClusterPosition[aClusterID].DeltaR(aCellPosition[neighbourID]) <= aClusterPosition[clusterIDToMerge].DeltaR(aCellPosition[neighbourID]) ){
+	    verbose() << "Neighbour is assigned to cluster1. " << endmsg;	      
+	    addedNeighbourIds.push_back(std::make_pair(neighbourID, aClusterID));
+	    // remove the cell from the other cluster
+	    aClusterPosition[clusterIDToMerge] -= aCellPosition[neighbourID]; // remove lorentz vector
+	    // add cell to correct cluster         
+	    aClusterPosition[aClusterID] += aCellPosition[neighbourID]; // add lorentz vector
+            
+	    aClusterOfCell[neighbourID] = aClusterID;
+	  }
+	  else{
+	    verbose() << "Neighbour stays assigned to cluster2. " << endmsg;
+	    aClusterOfCell[neighbourID] = clusterIDToMerge;
 	  }
 	  // if the cell is assigned to current cluster.. nevermind.                                                                                       
-	  else{
-	    continue;
-	  }
 	}
       }
     }

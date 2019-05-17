@@ -13,11 +13,12 @@ class IRndmGen;
 // FCCSW
 #include "SimG4Interface/ISimG4ParticleSmearTool.h"
 
-/** @class SimG4ParticleSmearFormula SimG4Fast/src/components/SimG4ParticleSmearFormula.h SimG4ParticleSmearFormula.h
+/** @class SimG4ParticleSmearFormula 
  *
  *  Formula particle smearing tool.
  *  The resolution dependence can be expressed by an arbitrary formula in the configuration.
  *  Smears momentum of the particle following a Gaussian distribution, using the evaluated formula as the mean.
+ *  The formula can have two parameters: "energy" (the magnitude of the momentum 3 vector) and "eta" (the pseudorapidity)
  *  [For more information please see](@ref md_sim_doc_geant4fastsim).
  *
  *  @author Anna Zaborowska

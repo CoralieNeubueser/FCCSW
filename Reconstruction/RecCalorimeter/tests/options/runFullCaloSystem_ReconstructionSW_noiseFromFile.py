@@ -54,32 +54,63 @@ positionsHcal.positionedHits.Path = "HCalBarrelPositions"
 
 from Configurables import RedoSegmentation
 resegmentHcal = RedoSegmentation("ReSegmentationHcal",
-                             # old bitfield (readout)
-                             oldReadoutName = hcalBarrelReadoutName,
-                             # # specify which fields are going to be altered (deleted/rewritten)
-                             # oldSegmentationIds = ["eta","phi"],
-                             # new bitfield (readout), with new segmentation
-                             newReadoutName = hcalBarrelReadoutPhiEtaName,
-                             debugPrint = 10,
-                             OutputLevel = INFO,
-                             inhits = "HCalBarrelPositions",
-                             outhits = "newHCalBarrelCells")
+                                 # old bitfield (readout)
+                                 oldReadoutName = hcalBarrelReadoutName,
+                                 # # specify which fields are going to be altered (deleted/rewritten)
+                                 oldSegmentationIds = ["module","row"],
+                                 # oldSegmentationIds = ["eta","phi"],
+                                 # new bitfield (readout), with new segmentation
+                                 newReadoutName = hcalBarrelReadoutPhiEtaName,
+                                 debugPrint = 10,
+                                 OutputLevel = INFO,
+                                 inhits = "HCalBarrelPositions",
+                                 outhits = "newHCalBarrelCells")
 
 positionsExtHcal = CreateVolumeCaloPositions("positionsExtHcal", OutputLevel = INFO)
 positionsExtHcal.hits.Path = hcalExtBarrelCellsName
 positionsExtHcal.positionedHits.Path = "HCalExtBarrelPositions"
 
 resegmentExtHcal = RedoSegmentation("ReSegmentationExtHcal",
-                                # old bitfield (readout)
-                                oldReadoutName = hcalExtBarrelReadoutName,
-                                # specify which fields are going to be altered (deleted/rewritten)
-                                #oldSegmentationIds = ["eta","phi"],
-                                # new bitfield (readout), with new segmentation
-                                newReadoutName = hcalExtBarrelReadoutPhiEtaName,
-                                debugPrint = 10,
-                                OutputLevel = INFO,
-                                inhits = "HCalExtBarrelPositions",
-                                outhits = "newHCalExtBarrelCells")
+                                    # old bitfield (readout)
+                                    oldReadoutName = hcalExtBarrelReadoutName,
+                                    # specify which fields are going to be altered (deleted/rewritten)
+                                    oldSegmentationIds = ["module","row"],
+                                    #oldSegmentationIds = ["eta","phi"],
+                                    # new bitfield (readout), with new segmentation
+                                    newReadoutName = hcalExtBarrelReadoutPhiEtaName,
+                                    debugPrint = 10,
+                                    OutputLevel = INFO,
+                                    inhits = "HCalExtBarrelPositions",
+                                    outhits = "newHCalExtBarrelCells")
+
+##############################################################################################################
+#######                                       CELL POSITIONS  TOOLS                              #############
+##############################################################################################################
+
+#Configure tools for calo cell positions
+from Configurables import CellPositionsECalBarrelTool, CellPositionsHCalBarrelNoSegTool, CellPositionsHCalBarrelTool, CellPositionsCaloDiscsTool, CellPositionsTailCatcherTool
+ECalBcells = CellPositionsECalBarrelTool("CellPositionsECalBarrel",
+                                         readoutName = ecalBarrelReadoutName,
+                                         OutputLevel = INFO)
+EMECcells = CellPositionsCaloDiscsTool("CellPositionsEMEC",
+                                       readoutName = ecalEndcapReadoutName,
+                                       OutputLevel = INFO)
+ECalFwdcells = CellPositionsCaloDiscsTool("CellPositionsECalFwd",
+                                          readoutName = ecalFwdReadoutName,
+                                          OutputLevel = INFO)
+HCalBcellVols = CellPositionsHCalBarrelNoSegTool("CellPositionsHCalBarrelVols",
+                                                 readoutName = "HCalBarrelReadout",
+                                                 OutputLevel = INFO)
+HCalBsegcells = CellPositionsHCalBarrelTool("CellPositionsHCalBarrel",
+                                            readoutName = "BarHCal_Readout_phieta",
+                                            radii = [291.05, 301.05, 313.55, 328.55, 343.55, 358.55, 378.55, 413.55, 428.55, 453.55],
+                                            OutputLevel = INFO)
+HECcells = CellPositionsCaloDiscsTool("CellPositionsHEC",
+                                      readoutName = hcalEndcapReadoutName,
+                                      OutputLevel = INFO)
+HCalFwdcells = CellPositionsCaloDiscsTool("CellPositionsHCalFwd",
+                                          readoutName = hcalFwdReadoutName,
+                                          OutputLevel = INFO)
 
 # add noise, create all existing cells in detector
 from Configurables import NoiseCaloCellsFromFileTool, TubeLayerPhiEtaCaloTool,CreateCaloCells
@@ -89,6 +120,7 @@ noiseBarrel = NoiseCaloCellsFromFileTool("NoiseBarrel",
                                          elecNoiseHistoName = ecalBarrelNoiseHistName,
                                          activeFieldName = "layer",
                                          addPileup = False,
+                                         cellPositionsTool = ECalBcells,
                                          numRadialLayers = 8)
 barrelGeometry = TubeLayerPhiEtaCaloTool("EcalBarrelGeo",
                                          readoutName = ecalBarrelReadoutName,
@@ -96,7 +128,8 @@ barrelGeometry = TubeLayerPhiEtaCaloTool("EcalBarrelGeo",
                                          activeFieldName = "layer",
                                          fieldNames = ["system"],
                                          fieldValues = [5],
-                                         activeVolumesNumber = 8)
+                                         activeVolumesNumber = 8,
+                                         OutputLevel=DEBUG)
 createEcalBarrelCells = CreateCaloCells("CreateECalBarrelCells",
                                         geometryTool = barrelGeometry,
                                         doCellCalibration=False, # already calibrated
@@ -109,12 +142,13 @@ createEcalBarrelCells = CreateCaloCells("CreateECalBarrelCells",
 # add noise, create all existing cells in detector
 # currently only positive side!
 noiseEndcap = NoiseCaloCellsFromFileTool("NoiseEndcap",
-                                                 readoutName = ecalEndcapReadoutName,
-                                                 noiseFileName = ecalEndcapNoisePath,
-                                                 elecNoiseHistoName = ecalEndcapNoiseHistName,
-                                                 activeFieldName = "layer",
-                                                 addPileup = False,
-                                                 numRadialLayers = 6)
+                                         readoutName = ecalEndcapReadoutName,
+                                         noiseFileName = ecalEndcapNoisePath,
+                                         elecNoiseHistoName = ecalEndcapNoiseHistName,
+                                         activeFieldName = "layer",
+                                         addPileup = False,
+                                         cellPositionsTool = EMECcells,
+                                         numRadialLayers = 6)
 endcapGeometry = TubeLayerPhiEtaCaloTool("EcalEndcapGeo",
                                                  readoutName = ecalEndcapReadoutName,
                                                  activeVolumeName = "layerEnvelope",
@@ -186,12 +220,12 @@ out.AuditExecute = True
 
 ApplicationMgr(
     TopAlg = [podioinput,
-              positionsHcal,
-              resegmentHcal,
-              positionsExtHcal,
-              resegmentExtHcal,
+#              positionsHcal,
+#              resegmentHcal,
+#              positionsExtHcal,
+#              resegmentExtHcal,
               createEcalBarrelCells,
-              createEcalEndcapCells,
+#              createEcalEndcapCells,
               createClusters,
               out
               ],

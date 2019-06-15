@@ -76,8 +76,6 @@ public:
   StatusCode finalize();
 
 private:
-  /// Pointer to the interface of histogram service
-  ITHistSvc* m_histSvc{nullptr};
   /// Pointer to the geometry service
   SmartIF<IGeoSvc> m_geoSvc;
 
@@ -118,8 +116,6 @@ private:
 
   /// General decoder to encode the calorimeter sub-system to determine which positions tool to use
   dd4hep::DDSegmentation::BitFieldCoder* m_decoder = new dd4hep::DDSegmentation::BitFieldCoder("system:4");
-
-  TH1F* m_totEnergy;
 
   bool m_noSegmentationHCalUsed = false; 
 

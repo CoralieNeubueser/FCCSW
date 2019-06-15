@@ -60,16 +60,6 @@ StatusCode SplitClusters::initialize() {
     return StatusCode::FAILURE;
   }
   
-  // Histogram service
-  if (service("THistSvc", m_histSvc).isFailure()) {
-    error() << "Unable to locate Histogram Service" << endmsg;
-    return StatusCode::FAILURE;
-  }
-  m_totEnergy = new TH1F("totalEnergy", "total energy in all clusters per event",  5000, 0, 5 );
-  if (m_histSvc->regHist("/rec/totEnergy", m_totEnergy).isFailure()) {
-    error() << "Couldn't register hist of total energy" << endmsg;
-    return StatusCode::FAILURE;
-  }
   m_decoderECal = m_geoSvc->lcdd()->readout(m_readoutECal).idSpec().decoder();  
   m_decoderHCal = m_geoSvc->lcdd()->readout(m_readoutHCal).idSpec().decoder();  
 
@@ -116,7 +106,6 @@ StatusCode SplitClusters::execute() {
 
   for (auto& cluster : *clusters) {
     // sanity checks
-    m_totEnergy->Fill(cluster.core().energy);
     totEnergyBefore += cluster.core().energy;
     totCellsBefore += cluster.hits_size();
     
@@ -134,8 +123,8 @@ StatusCode SplitClusters::execute() {
     // Loop over cluster cells 
     for (auto it = cluster.hits_begin(); it != cluster.hits_end(); ++it){
       auto cell = *it;
-      cellsType.emplace(std::pair<uint64_t, int>( cell.cellId(), cell.bits() ) );
-      cellsEnergy.emplace_back( cell.cellId(), cell.energy() );
+      cellsType.emplace( cell.cellId(), cell.bits() );
+      cellsEnergy.push_back( std::make_pair(cell.cellId(), cell.energy()) );
 
       // get cell position by cellID
       // identify calo system
@@ -163,7 +152,7 @@ StatusCode SplitClusters::execute() {
         warning() << "No cell positions tool found for system id " << systemId << ". " << endmsg;
 
       cellsPosition.emplace( std::pair<uint64_t, TLorentzVector>(cell.cellId(), TLorentzVector(posCell.X(), posCell.Y(), posCell.Z(), cell.energy()) ) );
-      allCells.emplace( std::pair<uint64_t, double>( cell.cellId(), cell.bits() ) );
+      allCells.emplace( cell.cellId(), cell.bits() );
     }
     
     // sort cells by energy
@@ -339,7 +328,10 @@ StatusCode SplitClusters::execute() {
 	
 	fcc::CaloCluster cluster;
 	auto& clusterCore = cluster.core();
-        double energy = 0.;
+	double posX = 0.;
+        double posY = 0.;
+        double posZ = 0.;
+	double energy = 0.;
 	std::map<uint64_t, int>::iterator it;
 	for ( it = cellsType.begin(); it != cellsType.end(); it++ ){
 	  totCellsAfter++;
@@ -352,15 +344,30 @@ StatusCode SplitClusters::execute() {
 	  auto fNEnergy = *fNeighbourEnergy;
 	  newCell.core().energy = fNEnergy.second;
 	  newCell.core().cellId = cID;
+          // get cell position by cellID
+	  // identify calo system
+          auto systemId = m_decoder->get(cID, "system");
+          dd4hep::Position posCell;
+          if (systemId == 5)  // ECAL BARREL system id
+            posCell = m_cellPositionsECalBarrelTool->xyzPosition(cID);
+          else if (systemId == 8){  // HCAL BARREL system id
+            if (m_noSegmentationHCalUsed)
+              posCell = m_cellPositionsHCalBarrelNoSegTool->xyzPosition(cID);
+            else{
+              posCell = m_cellPositionsHCalBarrelTool->xyzPosition(cID);
+            }}
+	  posX += posCell.X() * newCell.core().energy;
+          posY += posCell.Y() * newCell.core().energy;
+          posZ += posCell.Z() * newCell.core().energy;
 	  // left over cells
 	  newCell.core().bits = 4;
 	  energy += fNEnergy.second;
 	}
 	clusterCore.bits = 3;
 	clusterCore.energy = energy;
-	clusterCore.position.x = 0.;
-        clusterCore.position.y = 0.;
-        clusterCore.position.z = 0.;
+	clusterCore.position.x = posX / energy;
+        clusterCore.position.y = posY / energy;
+        clusterCore.position.z = posZ / energy;
         totEnergyAfter += energy;
 
         edmClusters->push_back(cluster);
@@ -423,7 +430,9 @@ StatusCode SplitClusters::execute() {
 	  posZ += posCell.Z() * newCell.core().energy;
 	  
 	  cluster.addhits(newCell);
-	  allCells.erase(cID);
+	  auto check = allCells.erase(cID);
+	  if (check!=1)
+	    error() << "Cell id is not deleted from map. " << endmsg;
 	}
 	clusterCore.energy = energy;
 	clusterCore.position.x = posX / energy;
@@ -452,7 +461,9 @@ StatusCode SplitClusters::execute() {
 	totCellsAfter++;
 	auto newCell = edmClusterCells->create();
 	newCell.core() = clu.hits(oldCells).core();
-	allCells.erase(newCell.core().cellId);
+	auto check = allCells.erase(newCell.core().cellId);
+	if (check!=1)
+	  error() << "Cell id is not deleted from map. " << endmsg;
       }
     }
 
